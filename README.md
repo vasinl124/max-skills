@@ -33,11 +33,13 @@ Ask in plain words — "screenshot this PR", "record a demo of this PR" — or i
 
 ## Requirements
 
-- [`gh`](https://cli.github.com), authenticated, and Node 18+
-- Playwright installed in the project you're capturing (the skills reuse the app's own copy — nothing global)
-- `pr-video` only: `ffmpeg`/`ffprobe`, ImageMagick, `python3`
+Nothing to `npm install` for the skills themselves — the scripts use only Node built-ins and standard CLI tools:
 
-Developed and tested on macOS.
+- `git`, [`gh`](https://cli.github.com) (authenticated), and Node 18+
+- **Playwright** — the skills reuse the copy already in your project, so nothing global. No Playwright in your project? Point `--app-dir` at any folder that has it. Browser not downloaded? Run `npx playwright install chromium`, or pass `--channel chrome` to use the Chrome you already have.
+- `pr-video` only: `ffmpeg`/`ffprobe` (4.3+), ImageMagick, `python3` — `brew install ffmpeg imagemagick` or `apt install ffmpeg imagemagick`
+
+Developed and tested on macOS; written to be Linux-compatible (bash + GNU tools). On Windows, use WSL.
 
 ## Teach it your project
 

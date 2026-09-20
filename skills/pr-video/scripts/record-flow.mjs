@@ -17,6 +17,7 @@
  *     --admin-url http://127.0.0.1:5174 \
  *     --out      /tmp/pr-media/123/video \
  *     [--size 1440x900] [--headed]
+ *     [--channel chrome]     # use your installed Chrome instead of Playwright's downloaded browser
  *
  * Prints JSON {clips:[{actor,file}...]} — feed the files to compose.sh.
  */
@@ -36,6 +37,7 @@ const adminURL = arg("admin-url", "http://127.0.0.1:5174");
 const outDir = resolve(arg("out", join(process.cwd(), "pr-media", "video")));
 const [W, H] = (arg("size", "1440x900")).split("x").map(Number);
 const headed = flag("headed");
+const channel = arg("channel");
 
 function loadChromium(dir) {
   const req = createRequire(join(dir, "__resolver__.js"));
@@ -53,7 +55,18 @@ function loadChromium(dir) {
 const chromium = loadChromium(appDir);
 await mkdir(outDir, { recursive: true });
 // Reading pauses and gradual wheel steps below control the pace explicitly.
-const browser = await chromium.launch({ headless: !headed, slowMo: 80 });
+const browser = await chromium
+  .launch({ headless: !headed, slowMo: 80, ...(channel ? { channel } : {}) })
+  .catch((error) => {
+    if (!String(error.message).includes("Executable doesn't exist")) throw error;
+    // Playwright is installed but its browser build isn't downloaded — the usual first-run snag.
+    console.error(
+      `error: Playwright in ${appDir} has no downloaded browser. Either:\n` +
+        `  1. (cd "${appDir}" && npx playwright install chromium)\n` +
+        `  2. re-run with --channel chrome to use your installed Google Chrome`,
+    );
+    process.exit(3);
+  });
 const clips = [];
 
 /** Open a recorded actor. Call `await a.finish()` to flush and get the .webm path. */

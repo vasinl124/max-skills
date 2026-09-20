@@ -29,18 +29,25 @@
 #   "$S" gif demo.mp4 demo.gif 960
 set -euo pipefail
 
-# A concrete font file (ImageMagick needs one; macOS ships these).
+# A concrete font file for ImageMagick: common macOS and Linux locations.
+# Override with FONT=/path/to/font.ttf if none of these exist on your system.
 FONT="${FONT:-}"
 if [ -z "$FONT" ]; then
   for f in /System/Library/Fonts/Supplemental/Arial.ttf \
            /System/Library/Fonts/Helvetica.ttc \
-           /Library/Fonts/Arial.ttf; do
+           /Library/Fonts/Arial.ttf \
+           /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf \
+           /usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf \
+           /usr/share/fonts/TTF/DejaVuSans.ttf; do
     [ -f "$f" ] && FONT="$f" && break
   done
 fi
 IM="$(command -v magick || command -v convert || true)"
 need_im() { [ -n "$IM" ] || { echo "compose.sh: ImageMagick not found — 'brew install imagemagick'"; exit 3; }; }
 fontargs() { [ -n "$FONT" ] && printf -- "-font %s" "$FONT"; }
+# Temp .png path that works with both BSD (macOS) and GNU (Linux) mktemp — `mktemp -t name`
+# is BSD-only — and leaves no stub file behind.
+tmp_png() { local f; f="$(mktemp "${TMPDIR:-/tmp}/$1.XXXXXX")"; mv "$f" "$f.png"; echo "$f.png"; }
 
 cmd="${1:-help}"; shift || true
 case "$cmd" in
@@ -52,7 +59,7 @@ case "$cmd" in
   title)
     need_im
     text="$1"; dur="${2:-2}"; size="${3:-1440x900}"; out="$4"
-    card="$(mktemp -t titlecard).png"
+    card="$(tmp_png titlecard)"
     "$IM" -size "$size" canvas:'#0b0b0f' -gravity center $(fontargs) \
       -fill white -pointsize 46 -annotate +0+0 "$text" "$card"
     ffmpeg -y -loop 1 -t "$dur" -i "$card" \
@@ -63,7 +70,7 @@ case "$cmd" in
   label)
     need_im
     in="$1"; text="$2"; out="$3"
-    cap="$(mktemp -t caption).png"
+    cap="$(tmp_png caption)"
     "$IM" -background '#000000AA' -fill white $(fontargs) -pointsize 30 \
       label:"$text" -bordercolor '#000000AA' -border 14 "$cap"
     ffmpeg -y -i "$in" -i "$cap" \
@@ -93,7 +100,7 @@ case "$cmd" in
     IFS=',' read -r cx cy <<< "$3"
     IFS='x' read -r rw rh <<< "$4"
     t0="$5"; t1="$6"; shape="${7:-circle}"
-    overlay="$(mktemp -t highlight).png"
+    overlay="$(tmp_png highlight)"
     # probe video dimensions for the full-frame overlay canvas
     read vw vh <<< "$(ffmpeg -i "$in" 2>&1 | grep -oE '[0-9]{2,5}x[0-9]{2,5}' | head -1 | tr 'x' ' ')"
     case "$shape" in
@@ -119,7 +126,7 @@ case "$cmd" in
     rm -f "$overlay" ;;
 
   gif)
-    w="${3:-960}"; pal="$(mktemp -t palette).png"
+    w="${3:-960}"; pal="$(tmp_png palette)"
     ffmpeg -y -i "$1" -vf "fps=12,scale=${w}:-1:flags=lanczos,palettegen" "$pal"
     ffmpeg -y -i "$1" -i "$pal" -lavfi "fps=12,scale=${w}:-1:flags=lanczos[x];[x][1:v]paletteuse" "$2"
     rm -f "$pal" ;;

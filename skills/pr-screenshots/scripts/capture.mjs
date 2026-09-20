@@ -15,6 +15,7 @@
  *     [--wait 1500]          # settle ms after load (default 1200)
  *     [--dismiss-overlay]    # scroll once first, for apps with a scroll-dismissed intro overlay
  *     [--no-full-page]       # viewport-only shots (default is full page)
+ *     [--channel chrome]     # use your installed Chrome instead of Playwright's downloaded browser
  *     [--headed]             # watch it run
  *
  * Prints a JSON manifest {shots:[{route,viewport,file,ok,error?}]} to stdout.
@@ -37,6 +38,7 @@ const settle = Number(arg("wait", "1200"));
 const fullPage = !flag("no-full-page");
 const dismissOverlay = flag("dismiss-overlay");
 const headed = flag("headed");
+const channel = arg("channel");
 const viewports = (arg("viewports", "desktop:1440x900,mobile:390x844"))
   .split(",")
   .map((v) => {
@@ -73,7 +75,18 @@ const slug = (route) =>
 
 const chromium = loadChromium(appDir);
 await mkdir(outDir, { recursive: true });
-const browser = await chromium.launch({ headless: !headed });
+const browser = await chromium
+  .launch({ headless: !headed, ...(channel ? { channel } : {}) })
+  .catch((error) => {
+    if (!String(error.message).includes("Executable doesn't exist")) throw error;
+    // Playwright is installed but its browser build isn't downloaded — the usual first-run snag.
+    console.error(
+      `error: Playwright in ${appDir} has no downloaded browser. Either:\n` +
+        `  1. (cd "${appDir}" && npx playwright install chromium)\n` +
+        `  2. re-run with --channel chrome to use your installed Google Chrome`,
+    );
+    process.exit(3);
+  });
 const manifest = { baseURL, outDir, shots: [] };
 
 for (const vp of viewports) {

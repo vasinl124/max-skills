@@ -37,4 +37,8 @@ mkdir -p "$t/b/pr-video"
 if ./link.sh "$t/b" >/dev/null 2>&1; then fail "link.sh should exit non-zero when it skips"; fi
 [ ! -L "$t/b/pr-video" ] || fail "link.sh overwrote an existing directory"
 
+# 5. the slack-summary alias must stay a verbatim copy of pr-summary's body (only its frontmatter differs)
+body() { awk 'seen>=2{print} /^---$/{seen++}' "$1"; }
+diff <(body skills/pr-summary/SKILL.md) <(body skills/slack-summary/SKILL.md) >/dev/null || fail "slack-summary body drifted from pr-summary — regenerate it from pr-summary/SKILL.md"
+
 echo "all checks passed"

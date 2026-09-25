@@ -6,8 +6,9 @@ A growing collection of agent skills for [Claude Code](https://claude.com/claude
 |---|---|
 | [`pr-screenshots`](skills/pr-screenshots/SKILL.md) | Runs your app locally, screenshots every screen a PR touches (desktop + mobile), and embeds the images in the PR description. |
 | [`pr-video`](skills/pr-video/SKILL.md) | Records a captioned end-to-end demo of what a PR does — multi-actor flows included — and attaches a GIF + MP4 to the PR description. |
+| [`pr-summary`](skills/pr-summary/SKILL.md) | Summarizes the current branch or PR into a 1–3 bullet, plain-language team update ending with the PR link — paste-ready for Slack. |
 
-Both publish media with plain `git` + `gh` (a dedicated `docs/pr-<n>-<slug>-media` branch, embedded by commit SHA), so they work on private repos with no browser upload — and both preview the PR body and ask before writing anything.
+The two media skills publish with plain `git` + `gh` (a dedicated `docs/pr-<n>-<slug>-media` branch, embedded by commit SHA), so they work on private repos with no browser upload — and both preview the PR body and ask before writing anything.
 
 ## Install
 
@@ -29,13 +30,13 @@ Pass whichever skills directories your agents read — Claude Code uses `~/.clau
 
 ## Use
 
-Ask in plain words — "screenshot this PR", "record a demo of this PR" — or invoke explicitly: `/pr-screenshots` and `/pr-video` in Claude Code, `$pr-screenshots` and `$pr-video` in Codex.
+Ask in plain words — "screenshot this PR", "record a demo of this PR", "summarize this PR for the team" — or invoke explicitly: `/pr-screenshots`, `/pr-video` and `/pr-summary` in Claude Code, or the same names with a `$` prefix in Codex.
 
 ## Requirements
 
 Nothing to `npm install` for the skills themselves — the scripts use only Node built-ins and standard CLI tools:
 
-- `git`, [`gh`](https://cli.github.com) (authenticated), and Node 18+
+- `git`, [`gh`](https://cli.github.com) (authenticated), and Node 18+ — `pr-summary` needs only the first two
 - **Playwright** — the skills reuse the copy already in your project, so nothing global. No Playwright in your project? Point `--app-dir` at any folder that has it. Browser not downloaded? Run `npx playwright install chromium`, or pass `--channel chrome` to use the Chrome you already have.
 - `pr-video` only: `ffmpeg`/`ffprobe` (4.3+), ImageMagick, `python3` — `brew install ffmpeg imagemagick` or `apt install ffmpeg imagemagick`
 

@@ -1,0 +1,10 @@
+{
+  "name": "max-skills",
+  "displayName": "Max's PR skills",
+  "description": "Screenshot, record and summarize pull requests straight into the PR description: pr-screenshots, pr-video and pr-summary.",
+  "author": { "name": "Max Vasin Limsukhawat", "url": "https://github.com/vasinl124" },
+  "homepage": "https://github.com/vasinl124/max-skills",
+  "repository": "https://github.com/vasinl124/max-skills",
+  "license": "MIT",
+  "keywords": ["pull-requests", "github", "screenshots", "demo-video", "playwright", "claude-code", "codex"]
+}

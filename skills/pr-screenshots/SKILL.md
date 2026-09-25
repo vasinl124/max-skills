@@ -86,7 +86,7 @@ Review the shots yourself before continuing. Re-capture any that landed on a spi
 Publish the PNGs to a dedicated media branch and embed them by commit SHA. `publish-media.sh` writes the files as a parentless commit and force-pushes it to `docs/pr-<n>-<slug>-media` (a media-only branch — never your PR/code branch, and it leaves your checkout untouched), then prints the SHA and one URL per file:
 
 ```bash
-"$SKILL_DIR/scripts/publish-media.sh" \
+bash "$SKILL_DIR/scripts/publish-media.sh" \
   "docs/pr-$PR-<slug>-media" \
   "${TMPDIR:-/tmp}/pr-media/$PR/screenshots/"*.png
 # → sha=<40-hex>

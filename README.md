@@ -50,7 +50,7 @@ The skills are deliberately generic. Anything project-specific — which dev com
 
 ## Adding a skill
 
-Create `skills/<name>/SKILL.md` (the frontmatter `name` must match the directory), keep scripts in `skills/<name>/scripts/` and reference them relative to the skill, then run `./test.sh` and `./link.sh <your skills dirs>`. Scripts shared by several skills are duplicated on purpose so each skill installs standalone; `test.sh` fails if the copies drift.
+Create `skills/<name>/SKILL.md` (the frontmatter `name` must match the directory), keep scripts in `skills/<name>/scripts/` and reference them relative to the skill, then run `./test.sh` and `./link.sh <your skills dirs>`. Scripts shared by several skills — and the body of the `slack-summary` alias — are duplicated on purpose so each skill installs standalone; `test.sh` fails if the copies drift.
 
 ## License
 

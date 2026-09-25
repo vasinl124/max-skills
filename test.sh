@@ -37,4 +37,8 @@ mkdir -p "$t/b/pr-video"
 if ./link.sh "$t/b" >/dev/null 2>&1; then fail "link.sh should exit non-zero when it skips"; fi
 [ ! -L "$t/b/pr-video" ] || fail "link.sh overwrote an existing directory"
 
+# 5. skill docs invoke the bundled shell scripts through bash: Codex's skill-installer (and plain copies) drop executable bits
+bad=$(grep -hoE '(bash )?"\$(S|SKILL_DIR/scripts/[^"]+\.sh)" ' skills/*/SKILL.md | grep -v '^bash ' || true)
+[ -z "$bad" ] || fail "shell script invoked without bash in a SKILL.md — breaks installs that drop exec bits: $bad"
+
 echo "all checks passed"

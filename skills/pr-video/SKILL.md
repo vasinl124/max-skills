@@ -94,25 +94,25 @@ Turn the raw clips into one captioned `.mp4` with `compose.sh` (normalize → la
 ```bash
 cd "${TMPDIR:-/tmp}/pr-media/$PR/video"
 S="$SKILL_DIR/scripts/compose.sh"
-"$S" mp4 1-customer/*.webm b.mp4 && "$S" label b.mp4 "1. Customer requests a refund" b1.mp4
-"$S" mp4 2-admin/*.webm a.mp4 && "$S" label a.mp4 "2. Admin approves the request" a1.mp4
-"$S" mp4 3-customer-after/*.webm c.mp4 && "$S" label c.mp4 "3. Customer sees it approved" c1.mp4
-"$S" title "PR #$PR — refund approval flow" 2 1440x900 t.mp4
-"$S" crossfade demo.mp4 t.mp4 b1.mp4 a1.mp4 c1.mp4
-"$S" gif demo.mp4 demo.gif 960     # optional inline-autoplay preview
+bash "$S" mp4 1-customer/*.webm b.mp4 && bash "$S" label b.mp4 "1. Customer requests a refund" b1.mp4
+bash "$S" mp4 2-admin/*.webm a.mp4 && bash "$S" label a.mp4 "2. Admin approves the request" a1.mp4
+bash "$S" mp4 3-customer-after/*.webm c.mp4 && bash "$S" label c.mp4 "3. Customer sees it approved" c1.mp4
+bash "$S" title "PR #$PR — refund approval flow" 2 1440x900 t.mp4
+bash "$S" crossfade demo.mp4 t.mp4 b1.mp4 a1.mp4 c1.mp4
+bash "$S" gif demo.mp4 demo.gif 960     # optional inline-autoplay preview
 ```
 
 **Highlighting** — draw the viewer's eye to specific UI elements during key moments:
 
 ```bash
 # circle a button at (640,400) in a 200×60 region, visible from 1s to 4s
-"$S" highlight b1.mp4 b1h.mp4 640,400 200x60 1 4 circle
+bash "$S" highlight b1.mp4 b1h.mp4 640,400 200x60 1 4 circle
 
 # arrow pointing down at (900,300), visible 2s–5s
-"$S" highlight a1.mp4 a1h.mp4 900,300 0x0 2 5 arrow
+bash "$S" highlight a1.mp4 a1h.mp4 900,300 0x0 2 5 arrow
 
 # box around a card at (400,500), 300×200, visible 0s–3s
-"$S" highlight c1.mp4 c1h.mp4 400,500 300x200 0 3 box
+bash "$S" highlight c1.mp4 c1h.mp4 400,500 300x200 0 3 box
 ```
 
 Coordinates are center `x,y`; size is `WxH` (for circle = axis diameters, for box = width×height; arrow ignores size). Shapes: `circle` (default), `arrow` (downward pointer), `box` (rounded rectangle). Chain multiple highlights by feeding the output of one as the input to the next. Apply highlights **after** `label` and **before** `crossfade`. The `concat` command remains available when hard cuts are explicitly desired.
@@ -126,7 +126,7 @@ Also make a GIF in step 4 (`compose.sh gif demo.mp4 demo.gif 960`): it's what sh
 Publish both to a dedicated media branch and link them. `publish-media.sh` writes the files as a parentless commit and force-pushes it to `docs/pr-<n>-<slug>-media` (a media-only branch — never your PR/code branch, and it leaves your checkout untouched), then prints the commit SHA and one URL per file:
 
 ```bash
-"$SKILL_DIR/scripts/publish-media.sh" \
+bash "$SKILL_DIR/scripts/publish-media.sh" \
   "docs/pr-$PR-<slug>-media" \
   "${TMPDIR:-/tmp}/pr-media/$PR/video/demo.gif" \
   "${TMPDIR:-/tmp}/pr-media/$PR/video/demo.mp4"

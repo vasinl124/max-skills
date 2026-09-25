@@ -1,0 +1,12 @@
+{
+  "name": "max-skills",
+  "description": "Agent skills for pull requests: screenshots, demo videos and summaries, straight into the PR description.",
+  "owner": { "name": "Max Vasin Limsukhawat", "url": "https://github.com/vasinl124" },
+  "plugins": [
+    {
+      "name": "max-skills",
+      "source": "./",
+      "description": "pr-screenshots, pr-video and pr-summary: capture and summarize what a PR does, into its description."
+    }
+  ]
+}

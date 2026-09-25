@@ -12,13 +12,33 @@ The two media skills publish with plain `git` + `gh` (a dedicated `docs/pr-<n>-<
 
 ## Install
 
+Any of these — pick the one that matches how you manage skills:
+
+**`skills` CLI** (Claude Code, Codex, Cursor and 40+ other agents):
+
 ```bash
 npx skills add vasinl124/max-skills
 ```
 
-That uses the [`skills`](https://github.com/vercel-labs/skills) CLI, which installs into whichever agents you have. Narrow it with `--skill pr-video` or `-a claude-code -a codex`.
+Narrow it with `--skill pr-video` or `-a claude-code -a codex`.
 
-Or clone and symlink, so `git pull` updates the skills in place:
+**Claude Code plugin** — the repo is also a plugin marketplace, so `claude plugin update` brings new versions:
+
+```bash
+claude plugin marketplace add vasinl124/max-skills
+claude plugin install max-skills@max-skills
+```
+
+Plugin skills carry the plugin prefix: `/max-skills:pr-screenshots`, `/max-skills:pr-video`, `/max-skills:pr-summary`.
+
+**Codex** — ask `$skill-installer` to install from `vasinl124/max-skills`, or run its script directly:
+
+```bash
+python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
+  --repo vasinl124/max-skills --path skills/pr-screenshots skills/pr-video skills/pr-summary
+```
+
+**Clone + symlink** — edits and `git pull` are live in every agent:
 
 ```bash
 git clone https://github.com/vasinl124/max-skills.git

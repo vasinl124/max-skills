@@ -8,6 +8,8 @@ A growing collection of agent skills for [Claude Code](https://claude.com/claude
 | [`pr-video`](skills/pr-video/SKILL.md) | Records a captioned end-to-end demo of what a PR does — multi-actor flows included — and attaches a GIF + MP4 to the PR description. |
 | [`pr-summary`](skills/pr-summary/SKILL.md) | Summarizes the current branch or PR into a 1–3 bullet, plain-language team update ending with the PR link — paste-ready for Slack. |
 
+`slack-summary` is the old name of `pr-summary`, kept as an alias so both still work.
+
 The two media skills publish with plain `git` + `gh` (a dedicated `docs/pr-<n>-<slug>-media` branch, embedded by commit SHA), so they work on private repos with no browser upload — and both preview the PR body and ask before writing anything.
 
 ## Install

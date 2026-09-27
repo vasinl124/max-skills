@@ -4,11 +4,11 @@ A growing collection of agent skills for [Claude Code](https://claude.com/claude
 
 | Skill | What it does |
 |---|---|
-| [`pr-screenshots`](skills/pr-screenshots/SKILL.md) | Runs your app locally, screenshots every screen a PR touches (desktop + mobile), and embeds the images in the PR description. |
-| [`pr-video`](skills/pr-video/SKILL.md) | Records a captioned end-to-end demo of what a PR does — multi-actor flows included — and attaches a GIF + MP4 to the PR description. |
+| [`pr-screenshots`](skills/pr-screenshots/SKILL.md) | Runs your app locally, screenshots every screen a PR touches (desktop + mobile) and shows each one BEFORE (base branch) and AFTER (the PR) side by side, with the changes boxed in red, all embedded in the PR description. |
+| [`pr-video`](skills/pr-video/SKILL.md) | Records a captioned end-to-end demo of what a PR does — multi-actor flows included — and attaches a GIF + MP4 to the PR description, led by BEFORE/AFTER stills of the screens it changed. |
 | [`pr-summary`](skills/pr-summary/SKILL.md) | Summarizes the current branch or PR into a 1–3 bullet, plain-language team update ending with the PR link — paste-ready for Slack. |
 
-The two media skills publish with plain `git` + `gh` (a dedicated `docs/pr-<n>-<slug>-media` branch, embedded by commit SHA), so they work on private repos with no browser upload — and both preview the PR body and ask before writing anything.
+Both media skills run the PR's base branch next to the PR on the same data, so every run includes a before/after with the changes boxed and labeled. They publish with plain `git` + `gh` (a dedicated `docs/pr-<n>-<slug>-media` branch, embedded by commit SHA), so they work on private repos with no browser upload — and both preview the PR body and ask before writing anything.
 
 ## Install
 

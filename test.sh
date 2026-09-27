@@ -23,7 +23,7 @@ for d in skills/*/; do
 done
 
 # 3. scripts shared between skills are duplicated on purpose (each skill installs standalone) — no drift
-for f in publish-media.sh alloc-ports.mjs update-pr-body.mjs; do
+for f in publish-media.sh alloc-ports.mjs update-pr-body.mjs before-after.mjs; do
   cmp -s "skills/pr-screenshots/scripts/$f" "skills/pr-video/scripts/$f" || fail "$f differs between pr-screenshots and pr-video"
 done
 

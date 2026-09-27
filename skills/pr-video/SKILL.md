@@ -17,7 +17,7 @@ Work in order. Confirm with the user before the two consequential steps: **perfo
   - *The project has no Playwright at all*: `--app-dir` can be **any** folder that has it, so don't add a dependency to the user's project just for this. With the user's OK, make a scratch one (`mkdir -p ~/.cache/pr-media && cd ~/.cache/pr-media && npm init -y && npm i playwright`) and point `--app-dir` there with `--channel chrome`.
 - `ffmpeg` + `ffprobe` on PATH (ffmpeg ≥ 4.3 for crossfades), and `python3`. Captions/title cards also need **ImageMagick** (`magick`, or `convert` on older installs): some ffmpeg builds ship without `drawtext`, so `compose.sh` renders text with ImageMagick and composites it via ffmpeg's `overlay`, which works everywhere. If anything is missing: `brew install ffmpeg imagemagick` (or `apt install ffmpeg imagemagick`). If captions fail with a font error, set `FONT=/path/to/any.ttf`.
 - **Attaching media needs only `gh` — no browser.** `publish-media.sh` pushes the files to a dedicated `docs/pr-<n>-<slug>-media` branch and prints commit-pinned URLs; you link them from the PR body. Private-repo safe: a `blob/<sha>/<file>?raw=true` (image/gif) embeds inline, and a `blob/<sha>/<file>` (video) opens GitHub's file-view **player** with play/pause/scrub — both work for anyone who can see the PR. Tradeoff vs. a drag-drop upload in the web UI: that mints a `.mp4` that autoplays **embedded in the body**; the gh link instead shows a GIF inline plus one click to the player page. So also publish a `.gif` (`compose.sh gif`) as the inline moving preview, with the `.mp4` player linked beside it. See step 5.
-- **Scripts live in `scripts/` next to this file**: `record-flow.mjs` (recorder template), `compose.sh` (ffmpeg), `alloc-ports.mjs`, `publish-media.sh` (push media to a branch via gh → SHA-pinned URLs), `update-pr-body.mjs` (idempotent body splice). In the commands below, `$SKILL_DIR` is the absolute path of the directory containing this `SKILL.md` — wherever your agent installed it (e.g. `~/.claude/skills/pr-video` or `~/.codex/skills/pr-video`). Shell state usually doesn't persist between an agent's shell calls, so substitute the literal path or set `SKILL_DIR=…` at the start of each command.
+- **Scripts live in `scripts/` next to this file**: `record-flow.mjs` (recorder template), `compose.sh` (ffmpeg), `before-after.mjs` (BEFORE | AFTER stills with the changes boxed), `alloc-ports.mjs`, `publish-media.sh` (push media to a branch via gh → SHA-pinned URLs), `update-pr-body.mjs` (idempotent body splice). In the commands below, `$SKILL_DIR` is the absolute path of the directory containing this `SKILL.md` — wherever your agent installed it (e.g. `~/.claude/skills/pr-video` or `~/.codex/skills/pr-video`). Shell state usually doesn't persist between an agent's shell calls, so substitute the literal path or set `SKILL_DIR=…` at the start of each command.
 - **Project-specific knowledge lives with the project, not in this skill**: which dev scripts to run, ports, auth bypass, seed data, env files, and which actions are unsafe locally. Check the repo's `AGENTS.md` / `CLAUDE.md` / README — and any project-specific companion skill — before step 2. When you learn something non-obvious while running this skill, suggest recording it there.
 - Keep media out of the repo: default `--out` to `$TMPDIR/pr-media/<pr>/video`.
 - **Desktop recording default:** use **1440×900**, keeping the full desktop layout. Use another viewport when the user requests it. Meet the destination's actual upload limit with compression or separate chapter videos, without silently switching to a narrow/mobile layout.
@@ -57,7 +57,7 @@ Find the dev commands in the project docs or the `package.json` scripts.
 node "$SKILL_DIR/scripts/alloc-ports.mjs" --near 3000,8787,3100,8887
 ```
 
-Launch each dev server in the background on its port, however the project takes one (`PORT=3002 npm run dev`, `npm run dev -- --port 3002`, a project-specific env var, …). Start shared backends first and point each app at the local one. Wait for every web port before recording:
+Launch each dev server in the background on its port, however the project takes one (`PORT=3002 npm run dev`, `npm run dev -- --port 3002`, a project-specific env var, …). Start shared backends first and point each app at the local one. Also start the **base branch** as a second stack on the same data, for the before/after in step 4b (setup below). Wait for every web port before recording:
 
 ```bash
 until curl -sf http://127.0.0.1:3002 >/dev/null && curl -sf http://127.0.0.1:3100 >/dev/null; do sleep 1; done
@@ -119,6 +119,39 @@ Coordinates are center `x,y`; size is `WxH` (for circle = axis diameters, for bo
 
 `sidebyside left.mp4 right.mp4 out.mp4` is available if you'd rather show two personas at once. Watch `demo.mp4` before posting and check its size (`ls -lh demo.mp4`): GitHub rejects files over 100 MB in a push and warns above 50 MB — a PR demo should be far smaller.
 
+## 4b. Before and after
+
+A demo shows what the PR does; a before/after shows what it *changed*, which is what a reviewer is really asking. Every run pairs the demo with BEFORE | AFTER stills of the screens the flow touches, the changes boxed in red.
+
+**The BEFORE stack**: the PR's base branch in its own worktree, on the same data as the AFTER stack:
+
+```bash
+BASE=$(gh pr view --json baseRefName -q .baseRefName)
+git fetch -q origin "$BASE"
+git worktree add --detach "${TMPDIR:-/tmp}/pr-media/$PR/before" "origin/$BASE"
+```
+
+Install its dependencies (or symlink `node_modules` when no lockfile changed), copy the same env files, give it its own ports, and seed it from the same fixtures or snapshot; a file database gets its own copy of the same snapshot, since the PR may migrate it. When the change only shows after something runs (an import, a sync, a pipeline), run it on both sides from the same starting data. If the base can't run, say so rather than faking a BEFORE.
+
+**The stills**: write one scene per screen (same path and state on both sides, plus what to box: on AFTER what's new, labeled `NEW  …` in 2 to 5 words; on BEFORE the matching spot as it was) and run the bundled script:
+
+```bash
+node "$SKILL_DIR/scripts/before-after.mjs" \
+  --app-dir "$(git rev-parse --show-toplevel)" \
+  --before-url http://127.0.0.1:3100 --after-url http://127.0.0.1:3000 \
+  --scenes scenes.json --out "${TMPDIR:-/tmp}/pr-media/$PR/before-after" \
+  --before-label "BEFORE  $BASE" --after-label "AFTER  PR #$PR"
+```
+
+The scene format is documented at the top of the script. Boxes are CSS selectors the script measures, so they land exactly; labels avoid covering text. It writes `<name>.png` (the titled pair) plus each side alone, and `manifest.json` lists any box it couldn't find (`missing`) and any label it had to move (`moved`, usually one too long to fit; shorten it). Add `--card card.json` when the change is measurable (rows of `{label, before, after, note}` you measured on both sides at the same moment). Check every pair: same record and scroll on both sides, boxes on the right elements, no label hiding its target.
+
+**Motion**: when the change is about motion (a flow, an animation, a loading state), also record the key chapter on both stacks with the same steps, label the clips and put them side by side:
+
+```bash
+bash "$S" label before.mp4 "BEFORE" b.mp4 && bash "$S" label after.mp4 "AFTER" a.mp4
+bash "$S" sidebyside b.mp4 a.mp4 before-after.mp4
+```
+
 ## 5. Attach to the PR — with gh, no browser
 
 Also make a GIF in step 4 (`compose.sh gif demo.mp4 demo.gif 960`): it's what shows *moving* in the body, since the MP4 link opens GitHub's player page rather than autoplaying embedded in the body.
@@ -129,7 +162,8 @@ Publish both to a dedicated media branch and link them. `publish-media.sh` write
 bash "$SKILL_DIR/scripts/publish-media.sh" \
   "docs/pr-$PR-<slug>-media" \
   "${TMPDIR:-/tmp}/pr-media/$PR/video/demo.gif" \
-  "${TMPDIR:-/tmp}/pr-media/$PR/video/demo.mp4"
+  "${TMPDIR:-/tmp}/pr-media/$PR/video/demo.mp4" \
+  "${TMPDIR:-/tmp}/pr-media/$PR/before-after/"*.png
 # → sha=<40-hex>
 #   demo.gif   https://github.com/<owner>/<repo>/blob/<sha>/demo.gif?raw=true   (embeds inline)
 #   demo.mp4   https://github.com/<owner>/<repo>/blob/<sha>/demo.mp4            (opens GitHub's player)
@@ -145,9 +179,29 @@ bash "$SKILL_DIR/scripts/publish-media.sh" \
 ▶ [Full walkthrough (MP4)](MP4_URL) — customer requests → admin approves → customer sees approval. Recorded locally.
 ```
 
-If you only have the MP4 (no GIF), drop the image line and keep just the `▶ [Full walkthrough (MP4)](MP4_URL)` link. Then splice into the body (idempotent between `<!-- pr-demo:start/end -->`) — preview only:
+If you only have the MP4 (no GIF), drop the image line and keep just the `▶ [Full walkthrough (MP4)](MP4_URL)` link.
+
+Put the before/after in its own `before-after.md`, which goes **above** the demo (a reviewer reads it first):
+
+```markdown
+## 🔍 Before / After
+
+![A job page](PAIR_URL)
+
+<details><summary>Each side at full size</summary>
+
+| Before | After |
+|---|---|
+| ![](BEFORE_URL) | ![](AFTER_URL) |
+
+</details>
+```
+
+Then splice both into the body (idempotent between their `<!-- pr-before-after:… -->` / `<!-- pr-demo:… -->` markers), before/after first — preview only:
 
 ```bash
+node "$SKILL_DIR/scripts/update-pr-body.mjs" \
+  --marker before-after --section-file before-after.md
 node "$SKILL_DIR/scripts/update-pr-body.mjs" \
   --marker demo --section-file section.md
 ```
@@ -156,19 +210,22 @@ node "$SKILL_DIR/scripts/update-pr-body.mjs" \
 
 ## 6. Confirm, then publish
 
-Editing a PR description is public-content modification — **show the user the assembled body and the video, get an explicit yes**, then:
+Editing a PR description is public-content modification — **show the user the assembled body, the before/after pairs and the video, get an explicit yes**, then:
 
 ```bash
+node "$SKILL_DIR/scripts/update-pr-body.mjs" \
+  --marker before-after --section-file before-after.md --write
 node "$SKILL_DIR/scripts/update-pr-body.mjs" \
   --marker demo --section-file section.md --write
 ```
 
-Report the PR URL. Re-running the skill after new commits refreshes the `## 🎥 Demo` block in place.
+Report the PR URL. Re-running the skill after new commits refreshes the `## 🔍 Before / After` and `## 🎥 Demo` blocks in place.
 
 ## Guardrails
 
 - **Confirm before firing write actions** in the recorded flow (production guardrail, step 2) and **before posting** to the PR (step 6). Both defaults are safe (preview / read-only).
 - **The media branch is as visible as the repo.** On a public repo, anyone can see what you push there — watch the video for secrets, tokens, and real names/emails before step 5.
 - **Local dev data only.** Don't record a deployed environment with real customer data; if you must, treat the frames as PII and stop to confirm.
+- **Same data on both sides** of a before/after; if you can't arrange it, say so next to the pair.
 - **Keep it small and short.** Trim to the essential steps; respect GitHub's file size limits; drop audio.
 - Needs an existing PR — create one first (`gh pr create`) or ask if the branch has none.

@@ -41,4 +41,11 @@ if ./link.sh "$t/b" >/dev/null 2>&1; then fail "link.sh should exit non-zero whe
 bad=$(grep -hoE '(bash )?"\$(S|SKILL_DIR/scripts/[^"]+\.sh)" ' skills/*/SKILL.md | grep -v '^bash ' || true)
 [ -z "$bad" ] || fail "shell script invoked without bash in a SKILL.md — breaks installs that drop exec bits: $bad"
 
+# 6. capture.mjs: routes that slug alike (/foo/bar, /foo-bar, /Foo_bar) each get their own file; the first keeps the plain name
+plan="$(node skills/pr-screenshots/scripts/capture.mjs --dry-run --base-url http://x --routes '/foo/bar,/foo-bar,/Foo_bar' --viewports desktop:1440x900 --out "$t/shots")" || fail "capture.mjs --dry-run failed"
+files="$(grep -o '"file": "[^"]*"' <<<"$plan" || true)"
+[ "$(grep -c . <<<"$files")" -eq 3 ] || fail "capture.mjs --dry-run: expected 3 planned shots: $files"
+[ "$(sort -u <<<"$files" | grep -c .)" -eq 3 ] || fail "capture.mjs: colliding route slugs share a file: $files"
+grep -q '/foo-bar--desktop.png"$' <<<"$files" || fail "capture.mjs: first route should keep the plain slug: $files"
+
 echo "all checks passed"

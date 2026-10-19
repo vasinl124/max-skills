@@ -92,7 +92,7 @@ node "$SKILL_DIR/scripts/capture.mjs" \
   --out "${TMPDIR:-/tmp}/pr-media/$PR/screenshots"
 ```
 
-It prints a JSON manifest of `{route, viewport, file}`. Files are named `<route-slug>--desktop.png` / `--mobile.png`. Useful flags: `--channel chrome` uses the installed Chrome instead of Playwright's downloaded browser, `--dismiss-overlay` scrolls once before each shot (for apps with a scroll-dismissed intro overlay), `--wait <ms>` extends the settle time for slow pages, `--viewports "desktop:1440x900"` limits the set, `--no-full-page` captures the viewport only.
+It prints a JSON manifest of `{route, viewport, file}`. Files are named `<route-slug>--desktop.png` / `--mobile.png`, lower-case; routes whose slugs collide (`/foo/bar` and `/foo-bar`) get `-2`, `-3`, so no shot overwrites another. Useful flags: `--dry-run` prints the planned files without launching a browser, `--channel chrome` uses the installed Chrome instead of Playwright's downloaded browser, `--dismiss-overlay` scrolls once before each shot (for apps with a scroll-dismissed intro overlay), `--wait <ms>` extends the settle time for slow pages, `--viewports "desktop:1440x900"` limits the set, `--no-full-page` captures the viewport only.
 
 Alternative — your agent's **browser tool** (e.g. Claude's in-app browser: `preview_start` → `navigate` → `computer` screenshot, or any Playwright/Chrome MCP) when a screen needs live interaction to reach (open a dialog, fill a field, expand a card) that's easier to drive by hand than to script. Save those PNGs into the same output dir so step 4 treats them uniformly.
 

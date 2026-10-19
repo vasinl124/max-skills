@@ -17,6 +17,7 @@
  *     [--no-full-page]       # viewport-only shots (default is full page)
  *     [--channel chrome]     # use your installed Chrome instead of Playwright's downloaded browser
  *     [--headed]             # watch it run
+ *     [--dry-run]            # print the planned manifest (routes x viewports -> files) and exit; no browser
  *
  * Prints a JSON manifest {shots:[{route,viewport,file,ok,error?}]} to stdout.
  */
@@ -32,7 +33,7 @@ const flag = (name) => process.argv.includes(`--${name}`);
 
 const appDir = resolve(arg("app-dir", process.cwd()));
 const baseURL = arg("base-url");
-const routes = (arg("routes", "/") || "/").split(",").map((s) => s.trim()).filter(Boolean);
+const routes = [...new Set((arg("routes", "/") || "/").split(",").map((s) => s.trim()).filter(Boolean))];
 const outDir = resolve(arg("out", join(process.cwd(), "pr-media", "screenshots")));
 const settle = Number(arg("wait", "1200"));
 const fullPage = !flag("no-full-page");
@@ -70,8 +71,29 @@ function loadChromium(dir) {
 }
 
 const slug = (route) =>
-  route.replace(/^https?:\/\/[^/]+/, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") ||
-  "root";
+  route
+    .replace(/^https?:\/\/[^/]+/, "")
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase() || "root";
+// /foo/bar and /foo-bar both slug to foo-bar (and /Foo vs /foo share a file on a case-insensitive
+// disk): number repeats so no shot overwrites another. Named once here, not per viewport.
+const names = new Map();
+for (const route of routes) {
+  const base = slug(route);
+  let name = base;
+  for (let n = 2; [...names.values()].includes(name); n++) name = `${base}-${n}`;
+  names.set(route, name);
+}
+const fileFor = (route, vp) => join(outDir, `${names.get(route)}--${vp.name}.png`);
+
+if (flag("dry-run")) {
+  const shots = viewports.flatMap((vp) =>
+    routes.map((route) => ({ route, viewport: vp.name, file: fileFor(route, vp) })),
+  );
+  console.log(JSON.stringify({ baseURL, outDir, shots }, null, 2));
+  process.exit(0);
+}
 
 const chromium = loadChromium(appDir);
 await mkdir(outDir, { recursive: true });
@@ -98,7 +120,7 @@ for (const vp of viewports) {
   const page = await context.newPage();
   for (const route of routes) {
     const url = route.startsWith("http") ? route : baseURL.replace(/\/$/, "") + route;
-    const file = join(outDir, `${slug(route)}--${vp.name}.png`);
+    const file = fileFor(route, vp);
     try {
       await page
         .goto(url, { waitUntil: "networkidle", timeout: 45000 })

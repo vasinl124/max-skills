@@ -1,0 +1,44 @@
+{
+  "skill_name": "merge-develop",
+  "notes": "Each eval runs against a throwaway git repo built by fixtures/setup_fixture.sh <scenario> <dest>. The repo is checked out on branch 'feature' with origin/develop holding conflicting work. The subagent is told to merge develop and resolve conflicts inside that repo. Grading is programmatic via grade.js <scenario> <repoPath>.",
+  "evals": [
+    {
+      "id": 0,
+      "scenario": "code-intent-merge",
+      "prompt": "Merge the latest remote develop branch into my current branch and resolve any merge conflicts.",
+      "expected_output": "develop merged into feature; src/settings.ts keeps BOTH timeout (from develop) and retries (from feature); no conflict markers; merge committed; report explains the resolution. Taking either side wholesale is wrong.",
+      "assertions": [
+        "Merge completed, no merge in progress",
+        "origin/develop merged into HEAD",
+        "No unmerged paths / no conflict markers",
+        "Both timeout and retries preserved in settings.ts",
+        "node test.js passes"
+      ]
+    },
+    {
+      "id": 1,
+      "scenario": "generated-file-regen",
+      "prompt": "Merge origin/develop into this branch and fix the conflicts so everything still builds.",
+      "expected_output": "data/chains.json merged to include all three chains; data/chains.generated.json is REGENERATED via the generator (npm run generate / scripts/generate.js), not hand-merged; no markers; merge committed; report notes the regenerate.",
+      "assertions": [
+        "Merge completed, no merge in progress",
+        "chains.json contains ethereum + base + arbitrum",
+        "generated file matches a fresh regenerate (count=3)",
+        "No conflict markers remain"
+      ]
+    },
+    {
+      "id": 2,
+      "scenario": "dirty-tree-stash",
+      "prompt": "Can you merge the latest develop into my branch and sort out the conflicts? I've got some unfinished edits in my working tree too.",
+      "expected_output": "Working tree auto-stashed (modified notes.txt + untracked scratch.txt), develop merged, routes.ts conflict resolved keeping all three routes, stash reapplied so notes.txt='v2 WIP' and scratch.txt survive; merge committed; report mentions the stash.",
+      "assertions": [
+        "Merge completed, develop merged into HEAD",
+        "routes.ts keeps /home, /about, /contact",
+        "Uncommitted notes.txt change preserved (v2 WIP)",
+        "Untracked scratch.txt preserved",
+        "No conflict markers remain"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{{TITLE}}</title>
+  <style>
+    :root {
+      --ink: #18181b;
+      --muted: #6b6b73;
+      --quiet: #a1a1aa;
+      --line: #dddddf;
+      --paper: #ffffff;
+      --canvas: #ececea;
+      --blue: #2450ff;
+      --blue-soft: #edf1ff;
+      --green: #087a55;
+      --green-soft: #e9f7f1;
+      --red: #c43d52;
+      --red-soft: #fff0f2;
+      --purple: #7047b8;
+      --purple-soft: #f3edff;
+      --amber: #936000;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font: 15px/1.55 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration-color: #aebdff; text-underline-offset: 3px; }
+    a:hover { color: var(--blue); text-decoration-color: var(--blue); }
+    .sheet {
+      width: min(1160px, calc(100% - 40px));
+      margin: 32px auto 64px;
+      overflow: hidden;
+      border: 1px solid #d6d6d3;
+      background: var(--paper);
+      box-shadow: 0 24px 80px rgba(24,24,27,.08);
+    }
+    .top-rule { height: 8px; background: var(--blue); }
+    .masthead {
+      display: flex;
+      justify-content: space-between;
+      gap: 28px;
+      align-items: center;
+      padding: 22px 56px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; letter-spacing: -.055em; }
+    .brand__mark { display: grid; place-items: center; width: 42px; height: 42px; color: white; background: var(--blue); font-size: 15px; letter-spacing: -.04em; }
+    .brand__name { font-size: 27px; }
+    .brand__division { margin-left: 3px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .edition { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 18px; color: var(--muted); font-size: 12px; }
+    .edition strong { color: var(--ink); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.28fr) minmax(340px, .72fr);
+      gap: 58px;
+      padding: 64px 56px 52px;
+    }
+    .eyebrow { margin: 0 0 19px; color: var(--blue); font-size: 11px; font-weight: 850; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 680px; font-size: clamp(44px, 6vw, 78px); font-weight: 800; line-height: .96; letter-spacing: -.065em; }
+    h1 span { color: var(--blue); }
+    .dek { max-width: 690px; margin: 30px 0 0; color: #3f3f46; font-size: 19px; line-height: 1.58; }
+    .byline { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-top: 28px; color: var(--muted); font-size: 12px; }
+    .byline b { color: var(--ink); }
+    .byline .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--blue); }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; align-self: start; border-top: 2px solid var(--ink); }
+    .metric { min-height: 139px; padding: 22px 18px 18px 0; border-bottom: 1px solid var(--line); }
+    .metric:nth-child(odd) { border-right: 1px solid var(--line); }
+    .metric:nth-child(even) { padding-left: 20px; }
+    .metric span { display: block; color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+    .metric strong { display: block; margin-top: 10px; font-size: 44px; font-weight: 820; line-height: 1; letter-spacing: -.06em; }
+    .metric p { margin: 8px 0 0; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .snapshot { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0 56px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+    .snapshot > div { min-height: 128px; padding: 22px 20px 20px 0; }
+    .snapshot > div + div { padding-left: 20px; border-left: 1px solid var(--line); }
+    .snapshot span { display: block; color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .13em; text-transform: uppercase; }
+    .snapshot strong { display: block; margin-top: 10px; font-size: 20px; line-height: 1.2; letter-spacing: -.025em; }
+    .snapshot p { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .add { color: var(--green); } .del { color: var(--red); }
+    section { padding: 68px 56px 8px; }
+    .section-head { display: grid; grid-template-columns: 86px minmax(0, 1fr) auto; gap: 20px; align-items: start; margin-bottom: 30px; padding-top: 18px; border-top: 2px solid var(--ink); }
+    .section-no { color: var(--blue); font: 800 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+    .section-head h2 { margin: -4px 0 0; font-size: 31px; line-height: 1.08; letter-spacing: -.045em; }
+    .section-head p { margin: 8px 0 0; color: var(--muted); }
+    .count { color: var(--blue); font-size: 28px; font-weight: 850; line-height: 1; letter-spacing: -.045em; }
+    .subhead { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; margin: 36px 0 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+    .subhead h3 { margin: 0; font-size: 15px; letter-spacing: -.015em; }
+    .subhead span { color: var(--muted); font: 750 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .work-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 34px; }
+    .work-card { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+    .work-card__index { padding-top: 2px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .work-card__index span { display: block; color: var(--quiet); font-size: 9px; font-weight: 800; letter-spacing: .12em; }
+    .work-card__index strong { display: block; margin-top: 5px; color: var(--blue); font-size: 13px; }
+    .work-card__top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .work-card__top time { color: var(--quiet); font-size: 10px; font-weight: 650; }
+    .work-card h3 { margin: 10px 0 0; font-size: 16px; line-height: 1.36; letter-spacing: -.018em; }
+    .work-card p { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 14px; align-items: end; margin-top: 13px; color: var(--muted); font-size: 10px; }
+    .badge { display: inline-flex; width: max-content; padding: 3px 7px; border-radius: 2px; font-size: 9px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }
+    .badge--merged { color: var(--purple); background: var(--purple-soft); }
+    .badge--open, .badge--approved { color: var(--green); background: var(--green-soft); }
+    .badge--draft, .badge--commented { color: #57575f; background: #eeeeef; }
+    .badge--closed, .badge--changes_requested { color: var(--red); background: var(--red-soft); }
+    .labels { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; }
+    .label { display: inline-flex; padding: 2px 6px; border: 1px solid var(--line); color: var(--muted); background: #fafafa; font-size: 9px; font-weight: 700; }
+    .ledger { margin-top: 30px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+    .ledger > summary, .commit-group > summary { display: flex; justify-content: space-between; gap: 20px; padding: 16px 0; cursor: pointer; font-size: 12px; font-weight: 800; list-style: none; }
+    .ledger > summary::-webkit-details-marker, .commit-group > summary::-webkit-details-marker { display: none; }
+    .ledger > summary::after, .commit-group > summary::after { content: "+"; color: var(--blue); font-size: 20px; font-weight: 500; line-height: .7; }
+    .ledger[open] > summary::after, .commit-group[open] > summary::after { content: "−"; }
+    .ledger > summary span, .commit-group > summary span { color: var(--muted); font-weight: 600; }
+    .workstreams { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
+    .workstreams__wide { grid-column: 1 / -1; }
+    .table-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 14px 12px 14px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+    td { font-size: 12px; }
+    th:last-child, td:last-child { text-align: right; padding-right: 0; }
+    .review-count { display: inline-grid; place-items: center; min-width: 27px; height: 25px; margin-right: 8px; color: var(--blue); background: var(--blue-soft); font-size: 11px; }
+    .review-mix { color: var(--muted); font-size: 10px; }
+    .commit-group { margin: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+    .commit-group > summary strong { margin-left: auto; margin-right: 12px; color: var(--blue); font-size: 11px; }
+    .commit-group ul { margin: 0; padding: 0; list-style: none; }
+    .commit-group li { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; gap: 14px; padding: 11px 0; border-top: 1px solid var(--line); }
+    .commit-sha { font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .commit-message { font-size: 11px; overflow-wrap: anywhere; }
+    .commit-date { color: var(--muted); font-size: 10px; white-space: nowrap; }
+    .other-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid var(--line); background: var(--line); }
+    .other-card { padding: 18px; background: white; }
+    .other-card .repo { color: var(--blue); font-size: 9px; font-weight: 800; }
+    .other-card h3 { margin: 8px 0 0; font-size: 12px; line-height: 1.4; }
+    .other-card p { margin: 7px 0 0; color: var(--muted); font-size: 10px; }
+    .coverage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; }
+    .coverage-grid h3 { margin: 0 0 12px; font-size: 12px; }
+    .source-list, .note-list { margin: 0; padding: 0; list-style: none; }
+    .source-list li { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+    .source-list strong { color: var(--green); }
+    .note-list li { margin: 7px 0; color: var(--muted); font-size: 10px; }
+    .empty { padding: 28px; border: 1px dashed var(--line); color: var(--muted); background: #fafafa; text-align: center; font-size: 11px; }
+    footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 68px; padding: 26px 56px; color: #c7c7ce; background: var(--ink); font-size: 10px; }
+    footer strong { color: white; letter-spacing: .08em; text-transform: uppercase; }
+    @media (max-width: 850px) {
+      .masthead, .hero, section, footer { padding-left: 28px; padding-right: 28px; }
+      .hero { grid-template-columns: 1fr; gap: 38px; }
+      .snapshot { margin-left: 28px; margin-right: 28px; grid-template-columns: 1fr 1fr; }
+      .snapshot > div:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
+      .snapshot > div:nth-child(4) { border-top: 1px solid var(--line); }
+      .work-grid, .workstreams { grid-template-columns: 1fr; }
+      .workstreams__wide { grid-column: auto; }
+      .other-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .sheet { width: 100%; margin: 0; border: 0; }
+      .masthead { align-items: flex-start; } .edition { display: none; }
+      h1 { font-size: 46px; }
+      .snapshot { grid-template-columns: 1fr; }
+      .snapshot > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+      .section-head { grid-template-columns: 42px 1fr; }
+      .section-head .count { grid-column: 2; }
+      .coverage-grid, .other-grid { grid-template-columns: 1fr; }
+      .commit-group li { grid-template-columns: 58px 1fr; }
+      .commit-date { grid-column: 2; }
+      footer { flex-direction: column; }
+    }
+    @media print {
+      body { background: white; font-size: 10px; }
+      .sheet { width: 100%; margin: 0; border: 0; box-shadow: none; }
+      .top-rule, .brand__mark { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      section { break-before: auto; }
+      .work-card, .snapshot > div, tr { break-inside: avoid; }
+      footer { color: #555; background: white; border-top: 1px solid var(--ink); }
+      footer strong { color: var(--ink); }
+      a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <div class="top-rule"></div>
+    <header>
+      <div class="masthead">
+        <div class="brand"><span class="brand__mark">{{MONOGRAM}}</span><span class="brand__name">{{REPO}}</span><span class="brand__division">Engineering</span></div>
+        <div class="edition"><strong>{{WEEK}} / Weekly note</strong><span>{{PERIOD}}</span></div>
+      </div>
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Weekly engineering update · <a href="{{REPO_URL}}">{{REPO_FULL}}</a> only</p>
+          <h1><span>{{NAME}}'s</span><br>week in code.</h1>
+          <p class="dek">{{SUMMARY}}</p>
+          <div class="byline"><span>Prepared by <b><a href="{{PROFILE_URL}}">{{LOGIN}}</a></b></span><span class="dot"></span><span>Generated {{GENERATED}}</span></div>
+        </div>
+        <div class="metrics">{{METRICS}}</div>
+      </div>
+      <div class="snapshot">{{SNAPSHOT}}</div>
+    </header>
+
+    <section id="shipped">
+      <div class="section-head"><span class="section-no">01</span><div><h2>Shipped this week</h2><p>The most recent authored pull requests merged into {{REPO}}.</p></div><span class="count">{{MERGED_COUNT}}</span></div>
+      <div class="work-grid">{{MERGED_HIGHLIGHTS}}</div>
+      <details class="ledger"><summary><span>Audit ledger</span>View all {{MERGED_COUNT}} merged pull requests</summary><div class="work-grid">{{MERGED_PRS}}</div></details>
+    </section>
+
+    <section id="progress">
+      <div class="section-head"><span class="section-no">02</span><div><h2>Work in motion</h2><p>Open and draft work active in the reporting window.</p></div><span class="count">{{OPEN_COUNT}}+{{DRAFT_COUNT}}</span></div>
+      <div class="workstreams">
+        <div><div class="subhead"><h3>Open</h3><span>{{OPEN_COUNT}} PRs</span></div><div>{{OPEN_PRS}}</div></div>
+        <div><div class="subhead"><h3>Draft</h3><span>{{DRAFT_COUNT}} PRs</span></div><div>{{DRAFT_PRS}}</div></div>
+      </div>
+    </section>
+
+    <section id="collaboration">
+      <div class="section-head"><span class="section-no">03</span><div><h2>Review & coordination</h2><p>{{REVIEW_COUNT}} review actions across {{REVIEWED_PR_COUNT}} pull requests, plus attributable issue work.</p></div></div>
+      <div class="subhead"><h3>Pull requests reviewed</h3><span>Grouped by PR</span></div>
+      {{REVIEWS}}
+      <div class="subhead"><h3>Issues</h3><span>Opened · closed · commented</span></div>
+      {{ISSUES}}
+    </section>
+
+    <section id="ledger">
+      <div class="section-head"><span class="section-no">04</span><div><h2>Activity ledger</h2><p>Complete supporting detail for commits and other attributable {{REPO}} activity.</p></div></div>
+      {{COMMITS}}
+      <details class="ledger"><summary><span>Other activity</span>Discussions, releases, branches, tags, and related events</summary>{{OTHER}}</details>
+    </section>
+
+    <section id="coverage">
+      <div class="section-head"><span class="section-no">05</span><div><h2>Data coverage</h2><p>Collection sources and limitations. Scope is fixed to {{REPO_FULL}}.</p></div></div>
+      {{COVERAGE}}
+    </section>
+
+    <footer><strong>{{REPO}} · {{WEEK}}</strong><span>GitHub links are the source of truth. The report makes no unsupported claims about business impact.</span></footer>
+  </main>
+</body>
+</html>

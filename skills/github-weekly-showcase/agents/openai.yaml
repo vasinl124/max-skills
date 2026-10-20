@@ -1,4 +1,0 @@
-interface:
-  display_name: "GitHub Weekly Showcase"
-  short_description: "Turn a week of GitHub work into a polished brief"
-  default_prompt: "Use $github-weekly-showcase to create my evidence-based weekly engineering report for this repository."

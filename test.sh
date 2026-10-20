@@ -18,15 +18,8 @@ for d in skills/*/; do
   d="${d%/}"; name="$(basename "$d")"
   [ -f "$d/SKILL.md" ] || fail "$d has no SKILL.md"
   grep -qx "name: $name" "$d/SKILL.md" || fail "$d: frontmatter name must be '$name'"
-  # one-line or folded (description: >-) — measure the text, not the '>-' marker
-  len="$(python3 - "$d/SKILL.md" <<'PY'
-import re, sys
-fm = open(sys.argv[1]).read().split("---")[1]
-m = re.search(r"^description:[ \t]*(?:[>|][-+]?[ \t]*\n((?:[ \t]+\S.*\n?)+)|(\S.*))", fm, re.M)
-print(len(" ".join(l.strip() for l in m.group(1).splitlines()) if m and m.group(1) else (m.group(2).strip() if m else "")))
-PY
-)"
-  [ "$len" -gt 0 ] && [ "$len" -le 1024 ] || fail "$d: description missing or over 1024 chars ($len)"
+  desc="$(sed -n 's/^description: //p' "$d/SKILL.md" | head -1)"
+  [ -n "$desc" ] && [ "${#desc}" -le 1024 ] || fail "$d: description missing or over 1024 chars"
 done
 
 # 3. scripts shared between skills are duplicated on purpose (each skill installs standalone) — no drift

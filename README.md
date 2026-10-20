@@ -7,10 +7,6 @@ A growing collection of agent skills for [Claude Code](https://claude.com/claude
 | [`pr-screenshots`](skills/pr-screenshots/SKILL.md) | Runs your app locally, screenshots every screen a PR touches (desktop + mobile) and shows each one BEFORE (base branch) and AFTER (the PR) side by side, with the changes boxed in red, all embedded in the PR description. |
 | [`pr-video`](skills/pr-video/SKILL.md) | Records a captioned end-to-end demo of what a PR does — multi-actor flows included — and attaches a GIF + MP4 to the PR description, led by BEFORE/AFTER stills of the screens it changed. |
 | [`pr-summary`](skills/pr-summary/SKILL.md) | Summarizes the current branch or PR into a 1–3 bullet, plain-language team update ending with the PR link — paste-ready for Slack. |
-| [`fix-pr-comments`](skills/fix-pr-comments/SKILL.md) | Works through every comment on a PR (inline threads, review summaries, conversation), makes the fixes, clears merge conflicts and red CI, then replies to each thread and resolves the ones it handled. |
-| [`merge-develop`](skills/merge-develop/SKILL.md) | Merges the latest `develop` (or any base branch) into your branch, resolves every conflict so both sides' intent survives, runs the builds and tests, and reports each decision. Never pushes. |
-| [`new-project`](skills/new-project/SKILL.md) | Takes an empty folder and an idea to a researched PRD, a brand with design tokens, then a scaffolded pnpm monorepo: Next.js web, Expo mobile, and a Rust/Axum API with email and Google sign-in. |
-| [`github-weekly-showcase`](skills/github-weekly-showcase/SKILL.md) | Turns your week of GitHub work in a repo (PRs, reviews, commits, issues) into a polished, print-friendly HTML brief with a JSON evidence file. |
 
 Both media skills run the PR's base branch next to the PR on the same data, so every run includes a before/after with the changes boxed and labeled. They publish with plain `git` + `gh` (a dedicated `docs/pr-<n>-<slug>-media` branch, embedded by commit SHA), so they work on private repos with no browser upload — and both preview the PR body and ask before writing anything.
 
@@ -33,14 +29,13 @@ claude plugin marketplace add vasinl124/max-skills
 claude plugin install max-skills@max-skills
 ```
 
-Plugin skills carry the plugin prefix, e.g. `/max-skills:pr-video` or `/max-skills:fix-pr-comments`.
+Plugin skills carry the plugin prefix: `/max-skills:pr-screenshots`, `/max-skills:pr-video`, `/max-skills:pr-summary`.
 
 **Codex** — ask `$skill-installer` to install from `vasinl124/max-skills`, or run its script directly:
 
 ```bash
 python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
-  --repo vasinl124/max-skills --path skills/pr-screenshots skills/pr-video skills/pr-summary \
-  skills/fix-pr-comments skills/merge-develop skills/new-project skills/github-weekly-showcase
+  --repo vasinl124/max-skills --path skills/pr-screenshots skills/pr-video skills/pr-summary
 ```
 
 **Clone + symlink** — edits and `git pull` are live in every agent:
@@ -55,7 +50,7 @@ Pass whichever skills directories your agents read — Claude Code uses `~/.clau
 
 ## Use
 
-Ask in plain words ("screenshot this PR", "record a demo of this PR", "summarize this PR for the team", "fix the review comments on this PR", "merge develop into my branch", "let's build a new app", "make my weekly GitHub report") or invoke a skill by name: `/fix-pr-comments` in Claude Code, `$fix-pr-comments` in Codex.
+Ask in plain words — "screenshot this PR", "record a demo of this PR", "summarize this PR for the team" — or invoke explicitly: `/pr-screenshots`, `/pr-video` and `/pr-summary` in Claude Code, or the same names with a `$` prefix in Codex.
 
 ## Requirements
 
@@ -64,7 +59,6 @@ Nothing to `npm install` for the skills themselves — the scripts use only Node
 - `git`, [`gh`](https://cli.github.com) (authenticated), and Node 18+ — `pr-summary` needs only the first two
 - **Playwright** — the skills reuse the copy already in your project, so nothing global. No Playwright in your project? Point `--app-dir` at any folder that has it. Browser not downloaded? Run `npx playwright install chromium`, or pass `--channel chrome` to use the Chrome you already have.
 - `pr-video` only: `ffmpeg`/`ffprobe` (4.3+), ImageMagick, `python3` — `brew install ffmpeg imagemagick` or `apt install ffmpeg imagemagick`
-- `fix-pr-comments` and `github-weekly-showcase`: `python3` and `gh`. `merge-develop`: `git` plus your project's own build and test tools. `new-project`: `pnpm`, a Rust toolchain and Docker once it scaffolds.
 
 Developed and tested on macOS; written to be Linux-compatible (bash + GNU tools). On Windows, use WSL.
 

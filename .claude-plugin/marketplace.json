@@ -1,12 +1,12 @@
 {
   "name": "max-skills",
-  "description": "Agent skills for pull requests and everyday engineering: PR screenshots, demo videos and summaries, fixing review comments, merging the base branch, new-project kickoff and weekly GitHub reports.",
+  "description": "Agent skills for pull requests: screenshots, demo videos and summaries, straight into the PR description.",
   "owner": { "name": "Max Vasin Limsukhawat", "url": "https://github.com/vasinl124" },
   "plugins": [
     {
       "name": "max-skills",
       "source": "./",
-      "description": "pr-screenshots, pr-video, pr-summary, fix-pr-comments, merge-develop, new-project and github-weekly-showcase."
+      "description": "pr-screenshots, pr-video and pr-summary: capture and summarize what a PR does, into its description."
     }
   ]
 }

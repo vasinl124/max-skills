@@ -21,11 +21,13 @@
  *   {
  *     "name": "billing",                        file slug
  *     "title": "Settings · Billing",            heading above the pair
+ *     "covers": ["src/Billing.tsx"],            the changed files this pair shows
  *     "path": "/settings/billing",              opened on both sides (beforePath / afterPath when a route moved)
  *     "steps": [STEP...],                       run on both sides after load
  *     "beforeSteps": [], "afterSteps": [],      extra steps for one side, run after "steps"
  *     "before": [BOX...], "after": [BOX...]     what to box on each side
  *   }
+ *   {"covers": [...], "skip": "<why>"} marks a screen that couldn't be captured: it's left out here.
  *   STEP: {"waitFor": sel} | {"click": sel} | {"open": "details sel"} | {"wait": ms} | {"eval": "js statements"}
  *         | {"scrollTo": sel, "offset": 16}     scrolls the element's own scroll container (a pane, or the page)
  *                                             so the element sits `offset` px below its top
@@ -169,8 +171,13 @@ function annotate({ specs, red }) {
   }
   const root = document.createElement("div");
   root.id = "__before_after__";
-  Object.assign(root.style, { position: "fixed", inset: "0", zIndex: "2147483647", pointerEvents: "none" }); // CSSOM, so page CSP allows it
+  Object.assign(root.style, { // CSSOM, so page CSP allows it; the resets undo the popover UA styles
+    position: "fixed", inset: "0", zIndex: "2147483647", pointerEvents: "none",
+    width: "auto", height: "auto", margin: "0", border: "0", padding: "0", background: "transparent", overflow: "visible",
+  });
   document.documentElement.appendChild(root);
+  // a modal <dialog> or an open popover sits in the top layer, above any z-index: join it last, so boxes on one show
+  if (root.showPopover) { root.popover = "manual"; root.showPopover(); }
   for (const b of boxes) {
     const d = document.createElement("div");
     Object.assign(d.style, {
@@ -278,6 +285,7 @@ ${rows.map((r) => `${r.section ? `<tr class="s"><td colspan="3">${esc(r.section)
 const result = { outDir, pairs: [] };
 const scenes = scenesFile ? JSON.parse(await readFile(scenesFile, "utf8")) : [];
 for (const s of scenes) {
+  if (s.skip) continue; // not captured; the PR names it with its reason instead
   const name = String(s.name).replace(/[^a-z0-9-]+/gi, "-");
   const files = { before: join(outDir, `${name}--before.png`), after: join(outDir, `${name}--after.png`), pair: join(outDir, `${name}.png`) };
   const before = await shot(beforeURL, s.beforePath ?? s.path ?? "/", [...(s.steps || []), ...(s.beforeSteps || [])], s.before || [], files.before);

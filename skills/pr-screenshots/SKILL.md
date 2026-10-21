@@ -6,7 +6,7 @@ license: MIT
 
 # PR Screenshots
 
-Turn a pull request into screenshots embedded in its description, with zero manual copy/paste. The hard parts this skill solves: (1) figuring out **which screens** a diff actually affects, (2) running the app locally to reach them, (3) showing **what changed**: every run pairs each screen with the base branch on the same data, BEFORE | AFTER, with the differences boxed in red, so a reviewer sees the change instead of hunting for it, and (4) getting images **into the PR body — private repos included** — so they render for every viewer.
+Turn a pull request into screenshots embedded in its description, with zero manual copy/paste. The hard parts this skill solves: (1) figuring out **which screens** a diff actually affects, and naming any it can't reach, (2) running the app locally to reach them, (3) showing **what changed**: every run pairs each screen with the base branch on the same data, BEFORE | AFTER, with the differences boxed in red, so a reviewer sees the change instead of hunting for it, and (4) getting images **into the PR body — private repos included** — so they render for every viewer.
 
 Work in this order. Confirm with the user before the one irreversible step (writing to the PR).
 
@@ -17,7 +17,7 @@ Work in this order. Confirm with the user before the one irreversible step (writ
   - *Playwright's browser isn't downloaded* (the script says so and exits 3): run `npx playwright install chromium` in that package, **or** pass `--channel chrome` to use the installed Google Chrome — no download.
   - *The project has no Playwright at all*: `--app-dir` can be **any** folder that has it, so don't add a dependency to the user's project just for this. With the user's OK, make a scratch one (`mkdir -p ~/.cache/pr-media && cd ~/.cache/pr-media && npm init -y && npm i playwright`) and point `--app-dir` there with `--channel chrome` — or use your agent's browser tool instead (step 3).
 - **Publishing images needs only `gh` — no browser.** `publish-media.sh` pushes the PNGs to a dedicated `docs/pr-<n>-<slug>-media` branch and prints commit-pinned URLs; you embed them in the PR body as `blob/<sha>/<file>?raw=true`, which renders inline for anyone who can see the PR (private repos included — the viewer is authenticated). See step 4.
-- **Scripts live in `scripts/` next to this file**: `capture.mjs`, `before-after.mjs` (BEFORE | AFTER pairs with the changes boxed, and an optional numbers card), `alloc-ports.mjs`, `publish-media.sh` (push media to a branch via gh → SHA-pinned URLs), `update-pr-body.mjs` (idempotent body splice). In the commands below, `$SKILL_DIR` is the absolute path of the directory containing this `SKILL.md` — wherever your agent installed it (e.g. `~/.claude/skills/pr-screenshots` or `~/.codex/skills/pr-screenshots`). Shell state usually doesn't persist between an agent's shell calls, so substitute the literal path or set `SKILL_DIR=…` at the start of each command.
+- **Scripts live in `scripts/` next to this file**: `capture.mjs`, `before-after.mjs` (BEFORE | AFTER pairs with the changes boxed, and an optional numbers card), `coverage.mjs` (fails when a changed UI file is in no scene), `alloc-ports.mjs`, `publish-media.sh` (push media to a branch via gh → SHA-pinned URLs), `update-pr-body.mjs` (idempotent body splice). In the commands below, `$SKILL_DIR` is the absolute path of the directory containing this `SKILL.md` — wherever your agent installed it (e.g. `~/.claude/skills/pr-screenshots` or `~/.codex/skills/pr-screenshots`). Shell state usually doesn't persist between an agent's shell calls, so substitute the literal path or set `SKILL_DIR=…` at the start of each command.
 - **Project-specific knowledge lives with the project, not in this skill**: which dev script to run, ports, auth bypass, seed data, env files, and which actions are unsafe locally. Check the repo's `AGENTS.md` / `CLAUDE.md` / README — and any project-specific companion skill — before step 2. When you learn something non-obvious while running this skill, suggest recording it there.
 - Default media output to a temp dir (`$TMPDIR/pr-media/<pr>/…`) so nothing lands in the repo tree. If the user wants them in-repo, use `./.pr-media` and make sure it's gitignored.
 
@@ -36,7 +36,7 @@ Map files → screens:
 - **Monorepo with several apps** (say, a customer app and an admin console) → note which app each changed file belongs to; each app is its own dev server and base URL.
 - **Backend / SDK / config-only changes** may have no visible screen — say so rather than screenshotting something unrelated.
 
-Produce a concrete **list of URLs to capture**. If the diff is ambiguous (a shared component used on many screens, or a flow behind interaction), propose the list and ask the user to confirm or trim it.
+Produce a concrete **list of URLs to capture**, and note which changed files each one shows: they become its scene's `covers` in step 3b. A change that only appears after a click, behind a flag or with a particular record is still a screen: plan how to reach it (a step, the flag, seed data), or record why it can't be captured. If the diff is ambiguous (a shared component used on many screens, or a flow behind interaction), propose the list and ask the user to confirm or trim it.
 
 ## 2. Run the app locally
 
@@ -100,7 +100,7 @@ Review the shots yourself before continuing. Re-capture any that landed on a spi
 
 ### 3b. Before/after pairs
 
-For each screen from step 1, write a **scene**: the same path and the same state on both stacks, plus what to box. `before-after.mjs` opens both, runs the steps, boxes the elements you name, and joins the two shots side by side under a title:
+For each screen from step 1, write a **scene**: the same path and the same state on both stacks, what to box, and the changed files it shows (`covers`). `before-after.mjs` opens both, runs the steps, boxes the elements you name, and joins the two shots side by side under a title:
 
 - **AFTER** — box what's new or different, labeled with 2 to 5 words: `NEW  Pay range vs target`, `Changed  Sort order`.
 - **BEFORE** — box the matching spot as it was (`No pay info`, `Still on your shortlist`), so the eye can jump straight across.
@@ -110,21 +110,30 @@ For each screen from step 1, write a **scene**: the same path and the same state
 
 ```json
 [
-  { "name": "job-page", "title": "A job page", "path": "/jobs/746",
+  { "name": "job-page", "title": "A job page", "path": "/jobs/746", "covers": ["app/jobs/[id]/page.tsx"],
     "steps": [{ "waitFor": ".props" }],
     "before": [{ "sel": ".props dt:nth-of-type(-n+2), .props dd:nth-of-type(-n+2)", "all": true, "label": "Fit and remote only" }],
     "after":  [{ "sel": ".props dt", "text": "Pay", "withNext": true, "label": "NEW  Pay range vs target", "at": "right" },
                { "sel": ".props dt", "text": "Company", "withNext": true, "label": "NEW  Other roles + application cap", "at": "right" }] },
-  { "name": "form-answers", "title": "Under the cover letter", "path": "/jobs/746",
+  { "name": "form-answers", "title": "Under the cover letter", "path": "/jobs/746", "covers": ["components/FormAnswers.tsx"],
     "steps": [{ "waitFor": ".props" }],
     "beforeSteps": [{ "scrollTo": "details.posting", "offset": 600 }],
     "afterSteps":  [{ "open": ".helper.answers" }, { "scrollTo": ".helper.answers", "offset": 260 }],
     "before": [{ "sel": "details.posting", "label": "Letter, then the description", "at": "right" }],
-    "after":  [{ "sel": ".helper.answers", "label": "NEW  Form answers, with Copy", "at": "right" }] }
+    "after":  [{ "sel": ".helper.answers", "label": "NEW  Form answers, with Copy", "at": "right" }] },
+  { "covers": ["components/WithdrawDialog.tsx"], "skip": "needs an application in review; the seed data has none" }
 ]
 ```
 
 Steps are `waitFor`, `click`, `open` (a `<details>`), `scrollTo` (scrolls the element's own container, a side pane or the page, to `offset` px below its top), `wait` and `eval`; `beforeSteps`/`afterSteps` cover a DOM that differs between the two, and `beforePath`/`afterPath` a route that moved.
+
+**Check coverage before capturing** (no browser needed). Pipe in the PR's changed files and pass every scenes file in one call, one per app in a monorepo:
+
+```bash
+gh pr diff --name-only | node "$SKILL_DIR/scripts/coverage.mjs" --scenes scenes.json > not-captured.md
+```
+
+It exits 1 and lists each changed UI file (components, pages, templates, styles; tests and stories don't count) that no scene `covers`, and each scene that covers files but boxes nothing on its AFTER side: the box is what proves the change is on screen, since a box on a dialog that never opened lands in `missing`. Fix every one: add it to the scene that shows it, write a scene that reaches it (a `click` that opens the dialog, the flag turned on, a seeded record), or, when it truly can't be captured, list it in a scene with `"skip": "<why>"`. Never drop a file to make the check pass. `before-after.mjs` leaves skipped scenes out, and `not-captured.md` names them for step 4.
 
 ```bash
 node "$SKILL_DIR/scripts/before-after.mjs" \
@@ -173,6 +182,8 @@ Publish the before/after pairs (and the card) in the same `publish-media.sh` cal
 </details>
 ```
 
+Append `not-captured.md` to it when that isn't empty: a reviewer should see what the pairs don't show, and why.
+
 Then build a tidy `section.md` for the screenshots. Group each screen's desktop + mobile shot; wrap long lists in `<details>`:
 
 ```markdown
@@ -216,4 +227,5 @@ Report the PR URL. Because each section sits between its own `<!-- pr-before-aft
 - **Don't screenshot production with real data.** These flows assume local dev with seed/placeholder data. If pointed at a deployed environment, treat the screens as potentially containing real customer PII and stop to confirm.
 - **Don't perform writes while capturing** unless the app is confirmed to point at a local/staging backend (guardrail in step 2).
 - **Same data on both sides.** A BEFORE and AFTER on different data mislead a reviewer; if you can't arrange the same data, say so next to the pair.
+- **Never drop a changed screen silently.** `coverage.mjs` must pass, and every screen you couldn't capture is named in the PR with why.
 - If there's no PR for the branch yet, create it first (`gh pr create`) or ask — this skill edits an existing PR, it doesn't invent one.

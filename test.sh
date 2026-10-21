@@ -48,4 +48,15 @@ files="$(grep -o '"file": "[^"]*"' <<<"$plan" || true)"
 [ "$(sort -u <<<"$files" | grep -c .)" -eq 3 ] || fail "capture.mjs: colliding route slugs share a file: $files"
 grep -q '/foo-bar--desktop.png"$' <<<"$files" || fail "capture.mjs: first route should keep the plain slug: $files"
 
+# 7. coverage.mjs: a changed UI file no scene covers fails the check; a skipped one is named, with why, for the PR
+cov=skills/pr-screenshots/scripts/coverage.mjs
+echo '[{"name":"a","path":"/","covers":["src/A.tsx"],"after":[{"sel":"h1"}]},{"covers":["src/B.tsx"],"skip":"needs a seeded record"}]' >"$t/scenes.json"
+err="$(printf 'src/A.tsx\nsrc/B.tsx\nsrc/C.tsx\nsrc/A.test.tsx\napi/x.ts\n' | node "$cov" --scenes "$t/scenes.json" 2>&1 >/dev/null)" && fail "coverage.mjs passed with src/C.tsx uncovered"
+[ "$(grep -c '^  ' <<<"$err")" -eq 1 ] && grep -qx '  src/C.tsx' <<<"$err" || fail "coverage.mjs should flag only src/C.tsx: $err"
+out="$(printf 'src/A.tsx\nsrc/B.tsx\napi/x.ts\n' | node "$cov" --scenes "$t/scenes.json" 2>/dev/null)" || fail "coverage.mjs failed with every UI file covered"
+grep -qxF -- '- `src/B.tsx`: needs a seeded record' <<<"$out" || fail "coverage.mjs did not name the skipped file: $out"
+if : | node "$cov" --scenes "$t/scenes.json" >/dev/null 2>&1; then fail "coverage.mjs passed on an empty file list"; fi
+echo '[{"name":"a","path":"/","covers":["src/A.tsx"]}]' >"$t/unboxed.json"
+if echo src/A.tsx | node "$cov" --scenes "$t/unboxed.json" >/dev/null 2>&1; then fail "coverage.mjs passed a scene that boxes nothing"; fi
+
 echo "all checks passed"

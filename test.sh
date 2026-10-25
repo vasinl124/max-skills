@@ -14,13 +14,22 @@ while IFS= read -r f; do
 done < <(find skills link.sh -type f \( -name '*.sh' -o -name '*.mjs' -o -name '*.py' \))
 
 # 2. each skill: frontmatter name matches its directory; description fits the Agent Skills 1024-char limit
+desc_of() {  # the description value; a block scalar (>- or |) is joined onto one line, as YAML folds it
+  awk '/^description:/ { sub(/^description:[[:space:]]*/, ""); if ($0 ~ /^[>|][-+]?$/) $0 = ""; d = $0; on = 1; next }
+       on && /^[[:space:]]/ { sub(/^[[:space:]]+/, ""); d = d (d == "" ? "" : " ") $0; next }
+       on { exit }
+       END { print d }' "$1"
+}
 for d in skills/*/; do
   d="${d%/}"; name="$(basename "$d")"
   [ -f "$d/SKILL.md" ] || fail "$d has no SKILL.md"
   grep -qx "name: $name" "$d/SKILL.md" || fail "$d: frontmatter name must be '$name'"
-  desc="$(sed -n 's/^description: //p' "$d/SKILL.md" | head -1)"
+  desc="$(desc_of "$d/SKILL.md")"
   [ -n "$desc" ] && [ "${#desc}" -le 1024 ] || fail "$d: description missing or over 1024 chars"
 done
+# a folded description is measured in full, not as its first line (">-" once passed as 2 chars)
+long="$(desc_of <(printf 'description: >-\n  %s\n  %s\n' "$(printf '%0600d' 0)" "$(printf '%0600d' 0)"))"
+[ "${#long}" -gt 1024 ] || fail "desc_of measured only the first line of a folded description"
 
 # 3. scripts shared between skills are duplicated on purpose (each skill installs standalone) — no drift
 for f in publish-media.sh alloc-ports.mjs update-pr-body.mjs before-after.mjs; do

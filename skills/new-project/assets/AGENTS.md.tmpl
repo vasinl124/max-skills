@@ -1,0 +1,84 @@
+# {{PROJECT_NAME}}
+
+{{ONE_LINE_DESCRIPTION}}
+
+> Also create a `CLAUDE.md` next to this file whose entire contents are `@AGENTS.md`, so
+> Claude Code and other agents inherit these conventions.
+
+## Architecture
+
+Split frontend/backend. The Next.js / React Native apps are **thin UI clients**; all stateful,
+authoritative logic lives in the Rust backend. Next.js route handlers and server actions are at
+most thin proxies to the Rust API, and the mobile app holds no business logic either.
+
+```text
+{{PROJECT_SLUG}}/
+├── apps/
+│   ├── web/        # Next.js frontend          (pnpm: {{PROJECT_SLUG}}-web,    port {{WEB_PORT}})
+│   └── mobile/     # React Native (Expo) app   (pnpm: {{PROJECT_SLUG}}-mobile, Expo 8081)
+├── packages/       # shared internal libs (optional)
+├── services/
+│   └── api/        # Rust (Axum) API + business logic                          (port {{API_PORT}})
+├── docs/           # PRD.md, BRANDING.md
+└── docker-compose.yml   # PostgreSQL (port {{DB_PORT}})
+```
+
+Convention: `apps/*` = deployed, `packages/*` = shared libs, `services/*` = hosted backends.
+Rust dirs have no `package.json` and are skipped by pnpm.
+
+## Stack
+
+- **Web**: Next.js (App Router) + TypeScript + Tailwind + shadcn/ui
+- **Mobile**: React Native via Expo (Expo Router) + TypeScript
+- **Backend**: Rust (edition 2024), Axum, SQLx (async Postgres, no ORM)
+- **DB**: PostgreSQL; schema = SQLx migrations in `services/api/migrations/`, applied on boot.
+
+> Frameworks here may differ from your training data (Next.js, Expo, Axum, SQLx all move
+> fast). Check current docs before writing framework code.
+
+## Auth
+
+- Email/password (bcrypt) + Sign in with Google, all in the Rust API, which issues the session
+  JWT. The web app gets it as an HttpOnly `session` cookie and calls the API with
+  `credentials: "include"`; page code never sees the token. The mobile app sends
+  `X-Client: mobile`, receives the token in the response, keeps it in `expo-secure-store` and
+  sends `Authorization: Bearer`.
+- A Google sign-in links to an existing account by email only through the linking rule in
+  `services/api/src/db/users.rs`: an unverified account loses its password and its sessions
+  when it's linked.
+- Bump `users.token_version` to revoke all of a user's sessions.
+- CSRF: state-changing endpoints take JSON bodies only, and nothing changes state on GET.
+- `apps/web/src/proxy.ts` is only an optimistic redirect; the API's 401 is the real gate.
+
+## Dev commands
+
+```bash
+pnpm dev          # api + web (concurrently)
+pnpm dev:all      # api + web + mobile
+pnpm dev:web      # Next.js only (port {{WEB_PORT}})
+pnpm dev:mobile   # Expo dev server
+pnpm dev:api      # Rust API only (cargo run)
+pnpm check        # type-check the web app
+pnpm backend:test # cargo test
+pnpm lint         # eslint on web
+docker compose up -d --wait db   # Postgres
+```
+
+## Ports
+
+| Service | Port |
+|---|---|
+| Next.js web | {{WEB_PORT}} |
+| Expo dev server | 8081 |
+| Rust API | {{API_PORT}} |
+| PostgreSQL | {{DB_PORT}} |
+
+## Environment variables
+
+- `DATABASE_URL`: Postgres connection
+- `JWT_SECRET`: signs session tokens; 32+ random bytes (`openssl rand -base64 48`), required
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`: Sign in with Google
+- `WEB_ORIGIN`: the web app's origin; the only CORS origin and where Google sign-in lands
+- `COOKIE_DOMAIN`: production only, the parent domain when web and API are on sibling subdomains
+- `NEXT_PUBLIC_API_URL`: the API's URL for the web app
+- `EXPO_PUBLIC_API_URL`: the API's URL for the mobile app

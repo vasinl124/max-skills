@@ -1,0 +1,23 @@
+# PostgreSQL for {{PROJECT_NAME}}, local development only. Start it: docker compose up -d --wait db
+# The Rust API connects via DATABASE_URL and applies SQLx migrations on boot.
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres   # dev-only password, which is why the port is bound to localhost
+      POSTGRES_DB: {{PROJECT_SLUG}}
+    ports:
+      - "127.0.0.1:{{DB_PORT}}:5432"
+    volumes:
+      # Postgres 18+ images keep data in a versioned subdirectory and refuse a mount at /var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

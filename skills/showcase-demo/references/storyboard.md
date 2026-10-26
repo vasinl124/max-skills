@@ -28,7 +28,7 @@
 | `brand.colors.stage` | Behind the window in screen scenes, if not the accent. Use `paper` when the app's own screens are mostly the accent colour, so the window stands out. |
 | `brand.style` | The window's shadow: `soft` (default) or `hard`, an offset in ink, for flat, bordered brands. |
 | `fps`, `width`, `height` | Default 30 and 1920×1080. Use 60 fps for social posts if render time allows. The layout is designed for 16:9; a square or vertical cut needs the layout in `scenes.tsx` adapted. |
-| `music` | Optional, a file in `public/`. It fades in and out. Use only music the user has the rights to. |
+| `music` | Optional, a file in `public/` (e.g. `music/score.wav`). It plays from 0:00 under the whole video, fading in over a second and out over the last two. See Music in `SKILL.md` for where to get it, where its drop should land and how loud it should be. |
 
 Typefaces are code, not JSON: set them in `src/fonts.ts`. Any Google Font is one import line. For font files, use `@remotion/fonts`.
 
@@ -39,10 +39,19 @@ Typefaces are code, not JSON: set them in `src/fonts.ts`. Any Google Font is one
 | `intro` | `seconds` | 3 s |
 | `title` | `text`, `kicker`, `theme`: `light` (paper), `dark` (ink) or `accent`; `seconds` | 2 s |
 | `screen` | `take`, plus optional `title` and `kicker` (a headline above the window, which fades while the camera is pushed in), `from`, `to` (seconds, to use part of a take) | the take's length |
+| `stats` | `items`: two to four `{ "value": "3", "label": "languages" }`. Values roll in digit by digit, and the last lands on an accent disc. | 3.2 s |
 | `outro` | `text`, `cta` (defaults to `brand.url`), `seconds` | 4 s |
 
 - In `text` and `title`, `*starred*` words are the accent: the serif's italic, over a marker stroke.
-- Scenes overlap by 0.6 s: screens slide up in, everything else fades. So every scene must be at least 1.2 s long.
+- Any scene can set `enter`, how it arrives over the last one:
+  - `slide`: up from the bottom, the default for screens;
+  - `fade`: the default for the rest;
+  - `iris`: opens from the centre in a circle;
+  - `clock`: sweeps in like a clock hand;
+  - `push`: a push-cut with a flash.
+
+  Use two or three kinds in one video, and save the showy ones for chapter breaks.
+- Scenes overlap by 0.6 s, so every scene must be at least 1.2 s long.
 - Two screen scenes can share one take through `from` and `to`, with a title scene between them.
 
 ## Takes
@@ -65,6 +74,8 @@ Typefaces are code, not JSON: set them in `src/fonts.ts`. Any Google Font is one
 }
 ```
 
+In `record.mjs`, `t.top(locator, height)` turns a tall element (a long card, a whole reply) into a box for its top part. Zoom on that box and call it out, so the ring doesn't run off the frame.
+
 Positions are CSS pixels in the recorded viewport, and times are seconds on the video's own clock, with sped-up spans already compressed. A `zoom` without a box goes back to the whole window. The JSON can be edited by hand to nudge a zoom, retime a callout or fix its wording, with no need to record again.
 
 ## Pacing and copy
@@ -74,4 +85,5 @@ Positions are CSS pixels in the recorded viewport, and times are seconds on the 
 - **The camera** pushes in to 1.4–1.8× on what is being acted on or read, and pulls back out to show where it sits. Each move takes 1 s, so leave about a second between zooms. Zoom into the payoff so its text can be read.
 - **Waits run under `t.fast()`**, at 3 to 6×, for model replies, loads and uploads. The badge says so.
 - **Callouts**: at most one per take, of 6 words or fewer, on the thing that makes the moment worth showing.
+- **A stats beat** before the outro can land the claim: three numbers, the last one the punchline ("0 made-up quotes").
 - **Copy**: in the product's own voice, concrete, and short. Titles of 6 words or fewer, with at most one accent each. Say what the viewer gets, not the feature's name: "Paid while you sleep", not "Automated reminders".

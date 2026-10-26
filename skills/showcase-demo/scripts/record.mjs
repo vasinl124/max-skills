@@ -14,7 +14,9 @@
  *     --out <showcase>/public/takes [--only ask,sources] [--size 1440x900] [--scale 2] \
  *     [--channel chrome] [--headed]
  *
- * Writes <out>/<take>.mp4 and <out>/<take>.json for each take; --only re-records just those.
+ * Writes <out>/<take>.mp4 and <out>/<take>.json for each take; --only re-records just those. Steps
+ * outside the named takes still run, but a skipped take's own steps don't: if a take builds on the state
+ * an earlier one leaves (a sent message, an opened panel), re-record them together.
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -34,7 +36,8 @@ const SCALE = Number(arg("scale", "2"));
 const only = arg("only")?.split(",");
 const channel = arg("channel");
 const FPS = 30;
-// Dev-only overlays to keep out of the frame: Next.js's dev badge here; add your framework's.
+// Overlays to keep out of the frame: Next.js's dev badge here. Add your framework's, and the app's own
+// floating chrome that would distract (a scroll-to-bottom button, a cookie banner, a chat widget).
 const HIDE = "nextjs-portal { display: none !important; }";
 
 function loadChromium(dir) {
@@ -111,7 +114,10 @@ const cursors = new WeakMap(); // each page's cursor position, carried from take
  *   t.fast(async () => …, rate)  play this span `rate`× faster (default 4): waiting for a reply, a load
  *   t.scroll({ distance, direction, point })   a gradual, visible scroll
  *   t.hold(ms)                   give the viewer time to read (default 1500)
- * Locators are measured when called, so zoom or call out what is on screen at that moment.
+ *   t.top(locator, height)       a box for just the top of a tall element (default 380 px), to zoom
+ *                                on or call out where it starts instead of ringing it off the frame
+ * Locators are measured when called, so zoom or call out what is on screen at that moment; any
+ * target can also be a plain { x, y, w, h } box.
  */
 async function take(name, page, steps) {
   if (only && !only.includes(name)) return;
@@ -178,6 +184,10 @@ async function take(name, page, steps) {
     },
     scroll: (options) => gradualScroll(page, options),
     hold: (ms = 1500) => page.waitForTimeout(ms),
+    async top(target, height = 380) {
+      const b = await box(target);
+      return { ...b, h: Math.min(b.h, height) };
+    },
   };
   await page.waitForTimeout(400); // a first frame before anything moves
   await steps(t);

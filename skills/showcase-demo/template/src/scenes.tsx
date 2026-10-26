@@ -13,11 +13,14 @@ export type Brand = {
   colors: { paper: string; ink: string; accent: string; muted: string; stage?: string };
   style?: "soft" | "hard"; // the window's shadow: soft and deep, or a hard offset in ink
 };
-export type Scene =
+// enter: how a scene arrives over the last one (default: a slide for screens, a fade for the rest)
+export type Scene = (
   | { type: "intro"; seconds?: number }
   | { type: "title"; text: string; kicker?: string; theme?: "light" | "dark" | "accent"; seconds?: number }
   | { type: "screen"; take: string; title?: string; kicker?: string; from?: number; to?: number }
-  | { type: "outro"; text?: string; cta?: string; seconds?: number };
+  | { type: "stats"; items: { value: string; label: string }[]; seconds?: number }
+  | { type: "outro"; text?: string; cta?: string; seconds?: number }
+) & { enter?: "fade" | "slide" | "iris" | "clock" | "push" };
 
 const BAR = 44; // the window's title bar
 
@@ -34,7 +37,10 @@ function Words(props: { text: string; size: number; color: string; delay?: numbe
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const words = text.split("*").flatMap((part, i) => part.split(/\s+/).filter(Boolean).map((word) => ({ word, accent: i % 2 === 1 })));
-  const swipe = spring({ frame: frame - delay - words.length * 3 - 8, fps, config: { damping: 200 } });
+  const swipe = (i: number) => {
+    const before = words.slice(0, i).filter((w) => w.accent).length; // accent words already struck
+    return spring({ frame: frame - delay - words.length * 3 - 8 - before * 4, fps, config: { damping: 200 } });
+  };
   return (
     <div style={{ fontSize: size, lineHeight: 1.08, letterSpacing: "-0.045em", color, textAlign: "center", textWrap: "balance", ...style }}>
       {words.map(({ word, accent }, i) => {
@@ -56,12 +62,13 @@ function Words(props: { text: string; size: number; color: string; delay?: numbe
                 <span
                   style={{
                     position: "absolute",
-                    inset: "0.2em -0.1em 0.04em",
+                    // runs on under the space when the next word is accented too, so the stroke reads as one
+                    inset: `0.2em ${words[i + 1]?.accent ? "-0.36em" : "-0.1em"} 0.04em -0.1em`,
                     background: mark,
                     borderRadius: "0.1em",
                     zIndex: -1,
                     transformOrigin: "left",
-                    transform: `scaleX(${swipe})`,
+                    transform: `scaleX(${swipe(i)})`,
                   }}
                 />
               )}
@@ -274,7 +281,7 @@ function Cursor({ cursor, at, size, ink }: { cursor: NonNullable<ReturnType<type
 }
 
 function Callout({ e, t, at, brand }: { e: Extract<TakeEvent, { type: "callout" }>; t: number; at: (p: Pt) => Pt; brand: Brand }) {
-  const { fps, width: W } = useVideoConfig();
+  const { fps, width: W, height: H } = useVideoConfig();
   const { paper, ink } = brand.colors;
   const pop = spring({ frame: Math.max(0, (t - e.t) * fps), fps, config: { damping: 16, stiffness: 170 } });
   const out = clamp((t - e.until) / 0.3);
@@ -283,7 +290,8 @@ function Callout({ e, t, at, brand }: { e: Extract<TakeEvent, { type: "callout" 
   const pad = 10;
   const w = x1 - x0 + 2 * pad;
   const h = y1 - y0 + 2 * pad;
-  const above = y0 > 150;
+  // under the target when there's room: what sits above it (a question, a header) is usually its context
+  const above = y1 + pad + 100 > H && y0 > 150;
   return (
     <>
       <svg width={w} height={h} style={{ position: "absolute", left: x0 - pad, top: y0 - pad, overflow: "visible", opacity: 1 - out }}>
@@ -335,5 +343,67 @@ export function Outro({ scene, brand }: { scene: Extract<Scene, { type: "outro" 
         )}
       </AbsoluteFill>
     </AbsoluteFill>
+  );
+}
+
+// The numbers' type size that fits the row in the frame: up to 230 px, shrinking with more or longer
+// values. A number takes about 0.66 em a character and a 40 px label about 21 px; gaps are 0.74 em.
+const statSize = (items: { value: string; label: string }[], width: number) => {
+  let size = 230;
+  const used = (s: number) => items.reduce((sum, it) => sum + Math.max(it.value.length * 0.66 * s, it.label.length * 21), 0) + (items.length - 1) * 0.74 * s;
+  while (size > 80 && used(size) > width - 240) size -= 10;
+  return size;
+};
+
+/** A beat of facts: each number rolls into place like a counter, and the last lands on an accent disc,
+ *  the punchline. Two to four items; the type shrinks to keep them all in the frame. */
+export function Stats({ scene, brand }: { scene: Extract<Scene, { type: "stats" }>; brand: Brand }) {
+  const { fps, width } = useVideoConfig();
+  const { paper, accent } = brand.colors;
+  const size = statSize(scene.items, width);
+  return (
+    <AbsoluteFill>
+      <Backdrop color={paper} light={accent} />
+      <AbsoluteFill style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 0.74 * size }}>
+        {scene.items.map((item, i) => (
+          <Stat key={i} {...item} size={size} delay={Math.round(0.4 * fps) + i * Math.round(0.45 * fps)} last={i === scene.items.length - 1} brand={brand} />
+        ))}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+}
+
+function Stat(props: { value: string; label: string; size: number; delay: number; last: boolean; brand: Brand }) {
+  const { value, label, size, delay, last, brand } = props;
+  const frame = useCurrentFrame() - delay;
+  const { fps } = useVideoConfig();
+  const { ink, accent, muted } = brand.colors;
+  const CELL = Math.round(size * 1.09);
+  const roll = spring({ frame, fps, config: { damping: 20, stiffness: 60 } });
+  const settle = spring({ frame: frame - 0.25 * fps, fps, config: { damping: 200 } });
+  const disc = spring({ frame: frame - 0.9 * fps, fps, config: { damping: 12, stiffness: 140 } });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, opacity: clamp(frame / 6) }}>
+      <div style={{ position: "relative", minWidth: CELL, height: CELL, display: "flex", justifyContent: "center" }}>
+        {last && <div style={{ position: "absolute", left: "50%", top: 0, width: CELL, height: CELL, marginLeft: -CELL / 2, borderRadius: "50%", background: accent, transform: `scale(${disc})` }} />}
+        {/* each digit is a strip of 0–9, twice over, rolling up to its value in the second run */}
+        {[...value].map((ch, d) => {
+          const digit = Number(ch);
+          if (!/[0-9]/.test(ch)) return <div key={d} style={{ position: "relative", lineHeight: `${CELL}px`, fontFamily: serif, fontStyle: "normal", fontSize: size, color: ink }}>{ch}</div>;
+          return (
+            <div key={d} style={{ position: "relative", height: CELL, overflow: "hidden" }}>
+              <div style={{ transform: `translateY(${-roll * (10 + digit) * CELL}px)`, filter: `blur(${(1 - settle) * 6}px)` }}>
+                {Array.from({ length: 20 }, (_, n) => (
+                  <div key={n} style={{ height: CELL, lineHeight: `${CELL}px`, fontFamily: serif, fontStyle: "normal", fontSize: size, color: ink, textAlign: "center" }}>
+                    {n % 10}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 40, fontWeight: 600, letterSpacing: "-0.025em", color: muted, opacity: settle, transform: `translateY(${(1 - settle) * 16}px)` }}>{label}</div>
+    </div>
   );
 }

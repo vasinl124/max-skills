@@ -1,6 +1,6 @@
 ---
 name: showcase-demo
-description: Make a polished, launch-style showcase video of a product, with motion graphics, from the running app. Real recordings of its best flows are staged in a browser window on the brand's colours, with kinetic titles, a camera that pushes in on each action, a drawn cursor, callouts, transitions, an intro and a call-to-action outro, rendered with Remotion. Use when the user asks for a showcase, demo, launch, promo or teaser video of their app or a feature, a product video "with motion graphics", a Screen Studio-style demo, or a hero video for a README, landing page, portfolio or social post. Records with Playwright (2× pixels plus a log of its clicks, typing and zooms), composes from a storyboard JSON, and delivers an MP4 and a GIF, optionally attached to a PR. For a reviewer's captioned walkthrough with before/after stills, use pr-video instead.
+description: Make a polished, launch-style showcase video of a product, with motion graphics, from the running app. Real recordings of its best flows are staged in a browser window on the brand's colours, with kinetic titles, a camera that pushes in on each action, a drawn cursor, callouts, transitions, an intro and a call-to-action outro, and an optional score, rendered with Remotion. Use when the user asks for a showcase, demo, launch, promo or teaser video of their app or a feature, a product video "with motion graphics", a Screen Studio-style demo, or a hero video for a README, landing page, portfolio or social post. Records with Playwright (2× pixels plus a log of its clicks, typing and zooms), composes from a storyboard JSON, and delivers an MP4 and a GIF, optionally attached to a PR. For a reviewer's captioned walkthrough with before/after stills, use pr-video instead.
 license: MIT
 ---
 
@@ -84,7 +84,7 @@ node "$SHOW/record.mjs" --app-dir "<dir with playwright>" --url http://127.0.0.1
   --out "$SHOW/public/takes" [--channel chrome] [--only send]
 ```
 
-Each take becomes `public/takes/<name>.mp4` (2880×1800 for the default 1440×900 window, so the camera can push in without blur) and `<name>.json` (its events). `--only` re-records just the takes named.
+Each take becomes `public/takes/<name>.mp4` (2880×1800 for the default 1440×900 window, so the camera can push in without blur) and `<name>.json` (its events). `--only` re-records just the takes named. If a take builds on the state an earlier one leaves behind (a sent message, an open panel), re-record them together.
 
 Look at every take before composing: pull a frame from its payoff (`ffmpeg -ss <s> -i take.mp4 -frames:v 1 x.png`). The payoff must be on screen, with no error toast and no spinner. Read any generated text in it: model output glitches, so retake a garbled reply rather than ship it.
 
@@ -94,9 +94,10 @@ The template builds the video from the storyboard and the takes:
 - **Intro**: the logo and name arrive, then the tagline.
 - **Title** scenes: kinetic type, with a marker stroke under the *starred* words.
 - **Screen** scenes: the take in a browser window. The camera glides to each zoom, a drawn cursor travels, presses and hides while typing, callouts ring their target, and a badge owns up to each sped-up stretch.
+- **Stats** scenes: two to four numbers that roll in like a counter, the last landing on an accent disc.
 - **Outro**: the line and the call to action.
 
-Scenes slide or fade into each other.
+Screens slide up into place, and other scenes fade in. A scene's `enter` can instead open it in an iris, sweep it in with a clock wipe, or push-cut to it.
 
 ```bash
 cd "$SHOW"
@@ -107,6 +108,18 @@ ffmpeg -y -i out/showcase.mp4 -vf "fps=10,scale=720:-1:flags=lanczos,split[a][b]
 ```
 
 Edit `public/showcase.json` and render again to change the words or the order. For a bespoke touch, edit `src/` directly: `scenes.tsx` has the look of each scene, `motion.ts` the camera and cursor, `Showcase.tsx` the timeline and transitions. Remotion animates only from `useCurrentFrame()`, never from CSS transitions; the `remotion-best-practices` skill, if installed, has the rest. The GIF is for a README, where a GIF plays inline: 40 seconds at 720 px and 10 fps comes to about 6 MB. Keep it under 10 MB.
+
+### Music
+
+A README GIF is silent anyway, but a score lifts the video on a site or in a social post. Use only music the user has the rights to, and say where it came from:
+- **Their own track**, licensed for video.
+- **Suno**, on a paid plan. An agent can generate the track, but only the user can save it: Suno signs its file links and encrypts its stream, and a browser driven by an agent doesn't save Suno's downloads. Ask the user to click ⋯ → Download → WAV, and pick the file up from `~/Downloads`.
+- **A music model the user has connected** (ElevenLabs Music, Lyria and the like), whose files download directly. Check the cost and tell the user before generating. Put the edit's timings in the prompt: a quiet open under the intro, where the beat should drop, any breaks, the final hit, and a fade by the end.
+
+Put the file in `public/music/` and set `"music": "music/<file>"` in `showcase.json`. It plays from 0:00, fading in over a second and out over the last two. Then:
+- **Find its drop** from its loudness each second (`ffmpeg -i <file> -af "aresample=8000,asetnsamples=8000,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level" -f null -`). Line the drop up with a moment that earns it, such as the first action or a sent question, trimming the file's start if it needs to move.
+- **Set its level with a fixed gain.** Measure its integrated loudness (`ffmpeg -i <file> -af ebur128 -f null -`), then apply `volume=<−14 minus that>dB` to land at −14 LUFS, which is about −16 LUFS in the video. Avoid `loudnorm`'s default mode: it lifts a quiet intro to the drop's level.
+- **Check the plan's terms.** Generated music usually comes under them: paid-plan output is typically fine as a video's soundtrack, but not as a track released on its own. Tell the user what they allow.
 
 ## 5. Check before sharing
 
@@ -123,7 +136,7 @@ Edit `public/showcase.json` and render again to change the words or the order. F
 
 Send the user the MP4, the GIF and the poster (their paths, or as files if your agent can send them), and say what each take shows and which were retaken. Then offer:
 
-- **The README or the site**: copy the files into the repo's media folder (e.g. `docs/media/`) and embed the GIF linked to the MP4. That changes the repo, so ask first.
+- **The README or the site**: copy the files into the repo's media folder (e.g. `docs/media/`) and embed the GIF linked to the MP4. On a site, use a `<video controls playsInline preload="none" poster>` with the MP4 and the poster, and play it in the deployment preview before merging. Either way that changes the repo, so ask first.
 - **A PR**: as in `pr-video`, publish to a media branch, then splice a section into the PR body that embeds the GIF linked to the MP4 (`[![Showcase](GIF_URL)](MP4_URL)`, with the URLs it prints). Show the user the result before `--write`:
 
 ```bash

@@ -1,9 +1,11 @@
 // The product's typefaces: swap in its own. Any Google Font is
 // `import { loadFont } from "@remotion/google-fonts/<FamilyWithoutSpaces>"`; for font files, put them in
-// public/ and load them with @remotion/fonts (`npx remotion add @remotion/fonts`).
+// public/ and load them with @remotion/fonts (`npx remotion add @remotion/fonts`). Latin Extended covers
+// accented names and transliterations (ā, ñ, ş…); add the subsets the product's own languages need.
 import { loadFont as loadSans } from "@remotion/google-fonts/InterTight";
 import { loadFont as loadSerif } from "@remotion/google-fonts/DMSerifDisplay";
 
-export const { fontFamily: sans } = loadSans("normal", { weights: ["400", "500", "600", "700"], subsets: ["latin"] });
-// the accent: *starred* words in titles
-export const { fontFamily: serif } = loadSerif("italic", { weights: ["400"], subsets: ["latin"] });
+export const { fontFamily: sans } = loadSans("normal", { weights: ["400", "500", "600", "700"], subsets: ["latin", "latin-ext"] });
+// italic for *starred* words, upright for the stats' numbers
+export const { fontFamily: serif } = loadSerif("italic", { weights: ["400"], subsets: ["latin", "latin-ext"] });
+loadSerif("normal", { weights: ["400"], subsets: ["latin", "latin-ext"] });

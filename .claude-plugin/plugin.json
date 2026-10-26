@@ -1,11 +1,11 @@
 {
   "name": "max-skills",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "displayName": "Max's skills",
-  "description": "Screenshot, record and summarize pull requests straight into the PR description, and take a new product from idea to researched PRD and scaffolded monorepo: pr-screenshots, pr-video, pr-summary and new-project.",
+  "description": "Screenshot, record and summarize pull requests straight into the PR description, make launch-style showcase videos with motion graphics, and take a new product from idea to researched PRD and scaffolded monorepo: pr-screenshots, pr-video, showcase-demo, pr-summary and new-project.",
   "author": { "name": "Max Vasin Limsukhawat", "url": "https://github.com/vasinl124" },
   "homepage": "https://github.com/vasinl124/max-skills",
   "repository": "https://github.com/vasinl124/max-skills",
   "license": "MIT",
-  "keywords": ["pull-requests", "github", "screenshots", "demo-video", "playwright", "new-project", "scaffold", "prd", "monorepo", "claude-code", "codex"]
+  "keywords": ["pull-requests", "github", "screenshots", "demo-video", "showcase-video", "motion-graphics", "remotion", "playwright", "new-project", "scaffold", "prd", "monorepo", "claude-code", "codex"]
 }

@@ -35,6 +35,9 @@ long="$(desc_of <(printf 'description: >-\n  %s\n  %s\n' "$(printf '%0600d' 0)" 
 for f in publish-media.sh alloc-ports.mjs update-pr-body.mjs before-after.mjs; do
   cmp -s "skills/pr-screenshots/scripts/$f" "skills/pr-video/scripts/$f" || fail "$f differs between pr-screenshots and pr-video"
 done
+for f in publish-media.sh alloc-ports.mjs update-pr-body.mjs; do
+  cmp -s "skills/pr-video/scripts/$f" "skills/showcase-demo/scripts/$f" || fail "$f differs between pr-video and showcase-demo"
+done
 
 # 4. link.sh links, is idempotent, and never overwrites
 t="$(mktemp -d)"; trap 'rm -rf "$t"' EXIT
@@ -67,5 +70,27 @@ grep -qxF -- '- `src/B.tsx`: needs a seeded record' <<<"$out" || fail "coverage.
 if : | node "$cov" --scenes "$t/scenes.json" >/dev/null 2>&1; then fail "coverage.mjs passed on an empty file list"; fi
 echo '[{"name":"a","path":"/","covers":["src/A.tsx"]}]' >"$t/unboxed.json"
 if echo src/A.tsx | node "$cov" --scenes "$t/unboxed.json" >/dev/null 2>&1; then fail "coverage.mjs passed a scene that boxes nothing"; fi
+
+# 8. showcase-demo's motion: a zoom frames its target without leaving the stage, glides in and comes home, and the
+#    cursor gets out of the way while typing and when idle. Node runs the TypeScript itself from 22.18 (type stripping).
+if node -e 'process.exit(process.features.typescript ? 0 : 1)'; then
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --input-type=module -e '
+    import { aim, camera, pointer, IDLE } from "./skills/showcase-demo/template/src/motion.ts";
+    const ok = (cond, what) => { if (!cond) throw new Error(what); };
+    const L = { W: 1920, H: 1080, ox: 240, oy: 114, k: 1 };
+    const corner = { x: 1340, y: 840, w: 100, h: 40 }; // a button in the bottom-right corner
+    const a = aim({ box: corner }, L);
+    ok(a.s === 1.8 && a.x + L.W / (2 * a.s) <= L.W + 1e-6 && a.y + L.H / (2 * a.s) <= L.H + 1e-6, `zoom leaves the stage: ${JSON.stringify(a)}`);
+    const zooms = [{ t: 1, type: "zoom", box: corner }, { t: 4, type: "zoom" }];
+    const [mid, held, home] = [1.5, 3, 5.5].map((t) => camera(zooms, t, L));
+    ok(mid.s > 1 && mid.s < 1.8 && held.s === 1.8 && home.s === 1 && Math.abs(home.x - L.W / 2) < 1e-6, "camera does not glide in, hold and come home");
+    const acts = [{ t: 0, type: "move", from: [0, 0], to: [100, 100], dur: 1 }, { t: 1, type: "click", at: [100, 100] }, { t: 1.2, type: "type", until: 2 }];
+    ok(pointer(acts, 1).opacity === 1 && pointer(acts, 1.6).opacity === 0, "cursor stays while typing");
+    const still = acts.slice(0, 2);
+    ok(pointer(still, 1 + IDLE - 0.1).opacity === 1 && pointer(still, 1 + IDLE + 0.4).opacity === 0, "cursor stays when idle");
+  ' || fail "showcase-demo template/src/motion.ts"
+else
+  echo "skipped: showcase-demo's motion check needs Node 22.18+"
+fi
 
 echo "all checks passed"

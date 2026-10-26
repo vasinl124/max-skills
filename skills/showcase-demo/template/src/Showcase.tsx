@@ -1,11 +1,14 @@
 import { AbsoluteFill, Composition, interpolate, staticFile, useVideoConfig, type CalculateMetadataFunction } from "remotion";
 import { Audio } from "@remotion/media";
-import { TransitionSeries, springTiming } from "@remotion/transitions";
+import { TransitionSeries, springTiming, type TransitionPresentation } from "@remotion/transitions";
+import { clockWipe } from "@remotion/transitions/clock-wipe";
 import { fade } from "@remotion/transitions/fade";
+import { iris } from "@remotion/transitions/iris";
+import { pushCut } from "@remotion/transitions/push-cut";
 import { slide } from "@remotion/transitions/slide";
 import { sans } from "./fonts";
 import type { Take } from "./motion";
-import { Intro, Outro, Screen, Title, type Brand, type Scene } from "./scenes";
+import { Intro, Outro, Screen, Stats, Title, type Brand, type Scene } from "./scenes";
 
 // public/showcase.json: the brand, the scenes in order, and optional music. Each screen scene plays
 // public/takes/<take>.mp4 and follows public/takes/<take>.json, both written by record.mjs.
@@ -13,7 +16,23 @@ export type Board = { brand: Brand; scenes: Scene[]; music?: string; fps?: numbe
 type Props = { storyboard: string; board?: Board; takes?: Record<string, Take> };
 
 const TRANSITION = 0.6; // seconds that neighbouring scenes overlap
-const SECONDS = { intro: 3, title: 2, outro: 4 };
+const SECONDS = { intro: 3, title: 2, stats: 3.2, outro: 4 };
+
+// How a scene arrives over the last one: its `enter`, else a slide for screens and a fade for the rest.
+const arrival = (scene: Scene, width: number, height: number): TransitionPresentation<any> => {
+  switch (scene.enter ?? (scene.type === "screen" ? "slide" : "fade")) {
+    case "slide":
+      return slide({ direction: "from-bottom" });
+    case "iris":
+      return iris({ width, height });
+    case "clock":
+      return clockWipe({ width, height });
+    case "push":
+      return pushCut();
+    default:
+      return fade();
+  }
+};
 
 const seconds = (s: Scene, takes: Record<string, Take>) =>
   s.type === "screen" ? (s.to ?? takes[s.take].duration) - (s.from ?? 0) : (s.seconds ?? SECONDS[s.type]);
@@ -42,7 +61,7 @@ const load: CalculateMetadataFunction<Props> = async ({ props }) => {
 };
 
 function Showcase({ board, takes }: Props) {
-  const { fps, durationInFrames } = useVideoConfig();
+  const { fps, durationInFrames, width, height } = useVideoConfig();
   if (!board || !takes) return null;
   const { brand } = board;
   const overlap = Math.round(TRANSITION * fps);
@@ -55,7 +74,7 @@ function Showcase({ board, takes }: Props) {
                 <TransitionSeries.Transition
                   key={`t${i}`}
                   timing={springTiming({ config: { damping: 200 }, durationInFrames: overlap })}
-                  presentation={scene.type === "screen" ? slide({ direction: "from-bottom" }) : fade()}
+                  presentation={arrival(scene, width, height)}
                 />,
               ]
             : []),
@@ -66,6 +85,8 @@ function Showcase({ board, takes }: Props) {
               <Title scene={scene} brand={brand} />
             ) : scene.type === "screen" ? (
               <Screen scene={scene} take={takes[scene.take]} brand={brand} />
+            ) : scene.type === "stats" ? (
+              <Stats scene={scene} brand={brand} />
             ) : (
               <Outro scene={scene} brand={brand} />
             )}

@@ -346,28 +346,39 @@ export function Outro({ scene, brand }: { scene: Extract<Scene, { type: "outro" 
   );
 }
 
+// The numbers' type size that fits the row in the frame: up to 230 px, shrinking with more or longer
+// values. A number takes about 0.66 em a character and a 40 px label about 21 px; gaps are 0.74 em.
+const statSize = (items: { value: string; label: string }[], width: number) => {
+  let size = 230;
+  const used = (s: number) => items.reduce((sum, it) => sum + Math.max(it.value.length * 0.66 * s, it.label.length * 21), 0) + (items.length - 1) * 0.74 * s;
+  while (size > 80 && used(size) > width - 240) size -= 10;
+  return size;
+};
+
 /** A beat of facts: each number rolls into place like a counter, and the last lands on an accent disc,
- *  the punchline. Values of one to three digits read best. */
+ *  the punchline. Two to four items; the type shrinks to keep them all in the frame. */
 export function Stats({ scene, brand }: { scene: Extract<Scene, { type: "stats" }>; brand: Brand }) {
-  const { fps } = useVideoConfig();
+  const { fps, width } = useVideoConfig();
   const { paper, accent } = brand.colors;
+  const size = statSize(scene.items, width);
   return (
     <AbsoluteFill>
       <Backdrop color={paper} light={accent} />
-      <AbsoluteFill style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 170 }}>
+      <AbsoluteFill style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 0.74 * size }}>
         {scene.items.map((item, i) => (
-          <Stat key={i} {...item} delay={Math.round(0.4 * fps) + i * Math.round(0.45 * fps)} last={i === scene.items.length - 1} brand={brand} />
+          <Stat key={i} {...item} size={size} delay={Math.round(0.4 * fps) + i * Math.round(0.45 * fps)} last={i === scene.items.length - 1} brand={brand} />
         ))}
       </AbsoluteFill>
     </AbsoluteFill>
   );
 }
 
-function Stat({ value, label, delay, last, brand }: { value: string; label: string; delay: number; last: boolean; brand: Brand }) {
+function Stat(props: { value: string; label: string; size: number; delay: number; last: boolean; brand: Brand }) {
+  const { value, label, size, delay, last, brand } = props;
   const frame = useCurrentFrame() - delay;
   const { fps } = useVideoConfig();
   const { ink, accent, muted } = brand.colors;
-  const CELL = 250;
+  const CELL = Math.round(size * 1.09);
   const roll = spring({ frame, fps, config: { damping: 20, stiffness: 60 } });
   const settle = spring({ frame: frame - 0.25 * fps, fps, config: { damping: 200 } });
   const disc = spring({ frame: frame - 0.9 * fps, fps, config: { damping: 12, stiffness: 140 } });
@@ -378,12 +389,12 @@ function Stat({ value, label, delay, last, brand }: { value: string; label: stri
         {/* each digit is a strip of 0–9, twice over, rolling up to its value in the second run */}
         {[...value].map((ch, d) => {
           const digit = Number(ch);
-          if (!/[0-9]/.test(ch)) return <div key={d} style={{ position: "relative", lineHeight: `${CELL}px`, fontFamily: serif, fontStyle: "normal", fontSize: 230, color: ink }}>{ch}</div>;
+          if (!/[0-9]/.test(ch)) return <div key={d} style={{ position: "relative", lineHeight: `${CELL}px`, fontFamily: serif, fontStyle: "normal", fontSize: size, color: ink }}>{ch}</div>;
           return (
             <div key={d} style={{ position: "relative", height: CELL, overflow: "hidden" }}>
               <div style={{ transform: `translateY(${-roll * (10 + digit) * CELL}px)`, filter: `blur(${(1 - settle) * 6}px)` }}>
                 {Array.from({ length: 20 }, (_, n) => (
-                  <div key={n} style={{ height: CELL, lineHeight: `${CELL}px`, fontFamily: serif, fontStyle: "normal", fontSize: 230, color: ink, textAlign: "center" }}>
+                  <div key={n} style={{ height: CELL, lineHeight: `${CELL}px`, fontFamily: serif, fontStyle: "normal", fontSize: size, color: ink, textAlign: "center" }}>
                     {n % 10}
                   </div>
                 ))}

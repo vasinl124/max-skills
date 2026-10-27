@@ -83,7 +83,7 @@ await take("send", page, async (t) => {
 });
 ```
 
-`t` also has `press`, `zoom`, `scroll` and `hold`; the template's doc comment lists them all. Locators are measured when called, so zoom on and call out what's on screen at that moment. Then:
+`t` also has `press`, `zoom`, `scroll`, `hold`, and `lift`, which floats a piece of the page out over the rest with a line under it, Apple-style: keep it for the one moment that earns it. The template's doc comment lists them all. Locators are measured when called, so zoom on and call out what's on screen at that moment. Then:
 
 ```bash
 cp "$SKILL_DIR/scripts/record.mjs" "$SHOW/record.mjs"   # then write its EDIT region
@@ -93,7 +93,7 @@ node "$SHOW/record.mjs" --app-dir "<dir with playwright>" --url http://127.0.0.1
 
 Each take becomes `public/takes/<name>.mp4` (2880×1800 for the default 1440×900 window, so the camera can push in without blur) and `<name>.json` (its events). `--only` re-records just the takes named. If a take builds on the state an earlier one leaves behind (a sent message, an open panel), re-record them together.
 
-A vertical or square cut reuses these takes, cut to a card around their action. When the text in a take must be read on a phone, record it again at a phone's size (`--size 430x932 --scale 3`) under its own name, and give it a screen scene with `"only": ["9:16"]`.
+A vertical or square cut reuses these takes, cut to a card around their action. When the text in a take must be read on a phone, record it again at a phone's size (`--size 430x932 --scale 3`) under its own name, and give it a screen scene with `"only": ["9:16"]`. A phone-size take in the 16:9 cut sits in a phone with `"frame": "phone"`, and a command line run in the browser sits in a terminal with `"frame": "terminal"`.
 
 Look at every take before composing: pull a frame from its payoff (`ffmpeg -ss <s> -i take.mp4 -frames:v 1 x.png`). The payoff must be on screen, with no error toast and no spinner. Read any generated text in it: model output glitches, so retake a garbled reply rather than ship it.
 
@@ -104,6 +104,8 @@ The template builds the video from the storyboard and the takes:
 - **Title** scenes: kinetic type, with a marker stroke under the *starred* words.
 - **Screen** scenes: the take in a browser window, or in 9:16 and 1:1 a card cut to its action. The camera glides to each zoom, a drawn cursor travels, presses and hides while typing, callouts ring their target, captions narrate underneath, and a badge owns up to each sped-up stretch. A chip at the top names the chapter.
 - **Stats** scenes: two to four numbers that roll in like a counter, the last landing on an accent disc.
+- **Quote** scenes: a pull quote set large, with who said it: a customer's words, or the line the product answers.
+- **Compare** scenes: before and after, from two pictures of the same screen; the after wipes across behind a handle.
 - **Outro**: the line and the call to action.
 
 Screens slide up into place, and other scenes fade in. A scene's `enter` can instead open it in an iris, sweep it in with a clock wipe, or push-cut to it.
@@ -142,6 +144,9 @@ Put the file in `public/music/` and set `"music": "music/<file>"` in `showcase.j
 - **Find its drop** from its loudness each second (`ffmpeg -i <file> -af "aresample=8000,asetnsamples=8000,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level" -f null -`). Line the drop up with a moment that earns it, such as the first action or a sent question, trimming the file's start if it needs to move.
 - **Set its level with a fixed gain.** Measure its integrated loudness (`ffmpeg -i <file> -af ebur128 -f null -`), then apply `volume=<−14 minus that>dB` to land at −14 LUFS, which is about −16 LUFS in the video. Avoid `loudnorm`'s default mode: it lifts a quiet intro to the drop's level.
 - **Check the plan's terms.** Generated music usually comes under them: paid-plan output is typically fine as a video's soundtrack, but not as a track released on its own. Tell the user what they allow.
+- **Cut on the beat.** `node "$SKILL_DIR/scripts/beats.mjs" public/music/<file>` prints the tempo and the first beat, such as `{"bpm":124,"offset":0.337}`. Put that in `showcase.json` as `"beat"`, and every cut after a title, a stats beat or a quote lands on a beat. Takes keep their own length. If the cuts feel a beat off, the guess may be half or double the tempo: halve or double `bpm`.
+
+Sound effects are separate from the music. With `"sfx": true`, a click plays on every click in a take, a pop as each callout or lift lands, and a soft whoosh as each scene comes in. `studio.sh` synthesizes the three sounds into `public/sfx/`; put your own `click.wav`, `pop.wav` and `whoosh.wav` there for a different feel. Keep them under the music, and leave them off for a README GIF, which is silent anyway.
 
 ## 5. Check before sharing
 

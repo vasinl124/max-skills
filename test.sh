@@ -76,6 +76,7 @@ if echo src/A.tsx | node "$cov" --scenes "$t/unboxed.json" >/dev/null 2>&1; then
 if node -e 'process.exit(process.features.typescript ? 0 : 1)'; then
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --input-type=module -e '
     import { aim, camera, focusOf, pointer, project, IDLE } from "./skills/showcase-demo/template/src/motion.ts";
+    import { onBeat, startsOf } from "./skills/showcase-demo/template/src/timing.ts";
     const ok = (cond, what) => { if (!cond) throw new Error(what); };
     const L = { W: 1920, H: 1080, ox: 240, oy: 114, k: 1 };
     const corner = { x: 1340, y: 840, w: 100, h: 40 }; // a button in the bottom-right corner
@@ -109,9 +110,27 @@ if node -e 'process.exit(process.features.typescript ? 0 : 1)'; then
     ok(clicked.s === 1 && clicked.x === camera([], 0, V).x, "a reframed push-in did not ease back out on its click");
     const f = focusOf({ viewport: { width: 1440, height: 900 }, duration: 1, events: [{ t: 0, type: "zoom", box: { x: 1300, y: 10, w: 100, h: 20 } }] });
     ok(f.w === 600 && f.x + f.w <= 1440 && f.y === 0, `the focus left the viewport: ${JSON.stringify(f)}`);
+    // cuts on the beat: at 120 BPM and 30 fps a beat is 15 frames, the first at frame 3. The cut after each
+    // flexible scene lands on one, moving by at most half a beat, and a take keeps its length.
+    const lengths = [60, 300, 60, 300, 90];
+    const beat = onBeat(lengths, [true, false, true, false, true], 18, 30, { bpm: 120, offset: 0.1 });
+    const cuts = startsOf(beat, 18);
+    ok(beat[1] === 300 && beat[3] === 300, `onBeat changed a take: ${beat}`);
+    ok([1, 3].every((i) => (cuts[i] - 3) % 15 === 0) && beat.every((n, i) => Math.abs(n - lengths[i]) <= 8), `a cut missed the beat: ${beat} → ${cuts}`);
   ' || fail "showcase-demo template/src/motion.ts"
 else
   echo "skipped: showcase-demo's motion check needs Node 22.18+"
+fi
+
+# 9. showcase-demo's beats.mjs finds the tempo and the first beat of a click track
+if command -v ffmpeg >/dev/null; then
+  ffmpeg -v error -y -f lavfi -i "aevalsrc='if(gte(t,0.25)*lt(mod(t-0.25,0.5),0.02),sin(2*PI*1000*t),0)':d=12:s=44100" "$t/clicks.wav"
+  node skills/showcase-demo/scripts/beats.mjs "$t/clicks.wav" | node -e '
+    const { bpm, offset } = JSON.parse(require("fs").readFileSync(0, "utf8"));
+    if (Math.abs(bpm - 120) > 0.5 || Math.abs(offset - 0.25) > 0.03) throw new Error(`beats.mjs heard ${bpm} BPM from ${offset} s`);
+  ' || fail "showcase-demo scripts/beats.mjs"
+else
+  echo "skipped: showcase-demo's beats.mjs check needs ffmpeg"
 fi
 
 echo "all checks passed"

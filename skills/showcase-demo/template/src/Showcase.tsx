@@ -1,4 +1,4 @@
-import { AbsoluteFill, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig, type CalculateMetadataFunction } from "remotion";
+import { AbsoluteFill, interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig, type CalculateMetadataFunction } from "remotion";
 import { Audio } from "@remotion/media";
 import { TransitionSeries, springTiming, type TransitionPresentation } from "@remotion/transitions";
 import { clockWipe } from "@remotion/transitions/clock-wipe";
@@ -13,6 +13,7 @@ import { clamp, type Take } from "./motion";
 import { ShowcaseContext } from "./parts";
 import { SECONDS } from "./scenes";
 import { resolveStyle } from "./styles";
+import { onBeat, startsOf } from "./timing";
 import type { Board, Enter, Format, Scene } from "./types";
 
 // public/showcase.json drives everything; each screen scene plays public/takes/<take>.mp4 and follows
@@ -23,6 +24,13 @@ export const TRANSITION = 0.6; // seconds that neighbouring scenes overlap
 
 export const seconds = (s: Scene, takes: Record<string, Take>) =>
   s.type === "screen" ? (s.to ?? takes[s.take].duration) - (s.from ?? 0) : (s.seconds ?? SECONDS[s.type]);
+
+// Each scene's length in frames: its seconds, with the cuts moved onto the music's beat when the board has one.
+export function lengthsOf(board: Board, takes: Record<string, Take>, fps: number) {
+  const lengths = board.scenes.map((s) => Math.round(seconds(s, takes) * fps));
+  const overlap = Math.round(TRANSITION * fps);
+  return board.beat ? onBeat(lengths, board.scenes.map((s) => s.type !== "screen"), overlap, fps, board.beat) : lengths;
+}
 
 export async function getJSON<T>(file: string): Promise<T> {
   const res = await fetch(staticFile(file), { cache: "no-store" });
@@ -40,7 +48,7 @@ export const load: CalculateMetadataFunction<ShowcaseProps> = async ({ props }) 
     if (seconds(s, takes) < 2 * TRANSITION) throw new Error(`${s.type} scene is under ${2 * TRANSITION} s: ${JSON.stringify(s)}`);
   }
   const fps = board.fps ?? 30;
-  const lengths = board.scenes.map((s) => Math.round(seconds(s, takes) * fps));
+  const lengths = lengthsOf(board, takes, fps);
   const { width, height } = FORMATS[props.format];
   return {
     fps,
@@ -78,8 +86,8 @@ export function Timeline({ board, takes, format }: { board: Board; takes: Record
   const style = resolveStyle(board.style);
   const { scenes } = board;
   const overlap = Math.round(TRANSITION * fps);
-  const lengths = scenes.map((s) => Math.round(seconds(s, takes) * fps));
-  const starts = lengths.map((_, i) => lengths.slice(0, i).reduce((a, b) => a + b - overlap, 0));
+  const lengths = lengthsOf(board, takes, fps);
+  const starts = startsOf(lengths, overlap);
   // the chapter in force at each scene: its own kicker, else the last one before it
   const chapters: (string | undefined)[] = [];
   scenes.forEach((s, i) => chapters.push(s.kicker ?? chapters[i - 1]));
@@ -122,6 +130,12 @@ export function Timeline({ board, takes, format }: { board: Board; takes: Record
         {chips.map((c) => (
           <style.Chip key={c.text} text={c.text} p={c.p} />
         ))}
+        {board.sfx &&
+          effects(board, takes, starts, fps).map((x, i) => (
+            <Sequence key={i} from={x.frame} durationInFrames={fps} layout="none">
+              <Audio src={staticFile(`sfx/${x.sound}.wav`)} volume={x.volume} />
+            </Sequence>
+          ))}
         {board.music && (
           <Audio
             src={staticFile(board.music)}
@@ -131,6 +145,24 @@ export function Timeline({ board, takes, format }: { board: Board; takes: Record
       </AbsoluteFill>
     </ShowcaseContext.Provider>
   );
+}
+
+// The sound effects (public/sfx/, which studio.sh makes): a whoosh as each scene comes in, a click on each
+// click in a take, and a pop as each callout or lift lands.
+function effects(board: Board, takes: Record<string, Take>, starts: number[], fps: number) {
+  const out: { frame: number; sound: "whoosh" | "click" | "pop"; volume: number }[] = [];
+  board.scenes.forEach((s, i) => {
+    if (i > 0) out.push({ frame: starts[i], sound: "whoosh", volume: 0.3 });
+    if (s.type !== "screen") return;
+    const [from, to] = [s.from ?? 0, s.to ?? takes[s.take].duration];
+    for (const e of takes[s.take].events) {
+      if (e.t < from || e.t >= to) continue;
+      const frame = starts[i] + Math.round((e.t - from) * fps);
+      if (e.type === "click") out.push({ frame, sound: "click", volume: 0.55 });
+      if (e.type === "callout" || e.type === "lift") out.push({ frame, sound: "pop", volume: 0.45 });
+    }
+  });
+  return out;
 }
 
 export function Showcase({ board, takes, format }: ShowcaseProps) {

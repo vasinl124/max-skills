@@ -12,6 +12,7 @@ export type TakeEvent =
   | { t: number; type: "type"; until: number }
   | { t: number; type: "zoom"; box?: Box; scale?: number }
   | { t: number; type: "callout"; box: Box; text: string; until: number }
+  | { t: number; type: "lift"; box: Box; text?: string; until: number }
   | { t: number; type: "speed"; rate: number; until: number }
   | { t: number; type: "say"; text: string };
 export type Take = { viewport: { width: number; height: number }; duration: number; events: TakeEvent[] };
@@ -54,12 +55,12 @@ const stage = (L: Layout, [x, y]: Pt): Pt => [L.ox + x * L.k, L.oy + y * L.k];
 const keep = (at: number, lo: number, hi: number, half: number, start = false) =>
   hi - lo > 2 * half ? (start ? lo + half : (lo + hi) / 2) : clamp(at, hi - half, lo + half);
 
-/** Where a take's action is, in its viewport: around every zoom and callout box and every place the
+/** Where a take's action is, in its viewport: around every zoom, callout and lift box and every place the
  *  cursor goes, padded, at least `least` px across; the whole viewport when nothing happens. A reframed
  *  card is cut to it. */
 export function focusOf(take: Take, pad = 40, least = LEAST): Box {
   const { width: vw, height: vh } = take.viewport;
-  const boxes = take.events.flatMap((e) => (e.type === "move" ? [{ x: e.to[0], y: e.to[1], w: 0, h: 0 }] : (e.type === "zoom" || e.type === "callout") && e.box ? [e.box] : []));
+  const boxes = take.events.flatMap((e) => (e.type === "move" ? [{ x: e.to[0], y: e.to[1], w: 0, h: 0 }] : (e.type === "zoom" || e.type === "callout" || e.type === "lift") && e.box ? [e.box] : []));
   if (!boxes.length) return { x: 0, y: 0, w: vw, h: vh };
   const [x0, x1] = [Math.min(...boxes.map((b) => b.x)), Math.max(...boxes.map((b) => b.x + b.w))];
   const [y0, y1] = [Math.min(...boxes.map((b) => b.y)), Math.max(...boxes.map((b) => b.y + b.h))];
@@ -89,7 +90,7 @@ function goal(e: TakeEvent, to: Camera, L: Layout): Camera | null {
   if (!L.follow) return null;
   // reframed, a push-in eases back out on the click it came for, to show what the click opens
   if (e.type === "click") return to.s > 1 ? home(L) : null;
-  if (e.type !== "move" && e.type !== "callout") return null;
+  if (e.type !== "move" && e.type !== "callout" && e.type !== "lift") return null;
   // pan just far enough that the target is in the view, 5% in from its edges
   const v = viewOf(L);
   const b = e.type === "move" ? { x: e.to[0], y: e.to[1], w: 0, h: 0 } : e.box;
@@ -100,7 +101,7 @@ function goal(e: TakeEvent, to: Camera, L: Layout): Camera | null {
 }
 
 /** The camera at take time t: it rests at home, and each zoom (and, with `follow`, each click while pushed
- *  in, and each move or callout that would land out of sight) glides it from wherever it is to where that
+ *  in, and each move, callout or lift that would land out of sight) glides it from wherever it is to where that
  *  event wants it. */
 export function camera(events: TakeEvent[], t: number, L: Layout): Camera {
   let [from, to, t0] = [home(L), home(L), -Infinity];

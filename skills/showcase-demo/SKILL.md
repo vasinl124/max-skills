@@ -125,7 +125,7 @@ Edit `public/showcase.json` and render again to change the words or the order.
 | Style | The look | Suits |
 |---|---|---|
 | `clean` (default) | Flat brand colours under a drifting light. | Anything; the safe choice. |
-| `rays` | Dark, lit from above by slow beams of the accent with the odd sparkle. Starred words glow, and so do windows. | Bold launches, developer tools, anything that looks good after dark. |
+| `beams` | Dark, lit from above by slow beams of the accent with the odd sparkle. Starred words glow, and so do windows. | Bold launches, developer tools, anything that looks good after dark. |
 | `aura` | Soft orbs of the accent and its neighbouring hues breathing over the ground. The chip and captions sit on frosted glass, and screens fade in. | Calm, consumer and wellness products. |
 | `drafting` | Grid paper with registration marks and a wandering crosshair (a blueprint on dark). Mono labels, leader-line callouts, and titles that drop in as blocks. | Engineering, data and productivity tools. |
 

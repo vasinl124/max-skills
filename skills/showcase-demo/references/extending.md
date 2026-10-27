@@ -4,7 +4,7 @@ The template is built from registries: styles, scenes, frames and formats. A new
 
 ## Styles (`src/styles/`)
 
-A style is the look a showcase wears, picked by `"style"` in `showcase.json`: `clean` (the default), `rays`, `aura` or `drafting`.
+A style is the look a showcase wears, picked by `"style"` in `showcase.json`: `clean` (the default), `beams`, `aura` or `drafting`.
 
 ```ts
 export type Style = {
@@ -21,7 +21,7 @@ export type Style = {
 
 Only `Backdrop` is required; the rest falls back to `clean`'s. A scene asks its `Backdrop` for a tone: `paper`, `ink`, `accent`, or `stage` (behind a take: the brand's `stage` colour, else the accent). Title cards pass `quiet` for a calmer version.
 
-The scenes never pick colours themselves. They ask `useSurface(tone)` what to draw with on that tone: the `ground`, its `text` and `muted` text, the `mark` stroke under starred words (none: they stand out by colour), the starred words' colour `em` and any `glow` behind them, and the `edge` colour of a hard shadow. `clean`'s surface is the brand's colours as they are. `rays` returns a dark ground with paper text on every tone, which is all it takes to make every scene dark. A style can also dress the default chip and caption instead of redrawing them, by passing a `skin` of CSS, as `aura` does for its frosted glass.
+The scenes never pick colours themselves. They ask `useSurface(tone)` what to draw with on that tone: the `ground`, its `text` and `muted` text, the `mark` stroke under starred words (none: they stand out by colour), the starred words' colour `em` and any `glow` behind them, and the `edge` colour of a hard shadow. `clean`'s surface is the brand's colours as they are. `beams` returns a dark ground with paper text on every tone, which is all it takes to make every scene dark. A style can also dress the default chip and caption instead of redrawing them, by passing a `skin` of CSS, as `aura` does for its frosted glass.
 
 To add a style:
 1. Write `src/styles/<name>.tsx` exporting a `Style`.

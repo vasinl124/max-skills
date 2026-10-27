@@ -28,7 +28,7 @@
 | `brand.colors.accent` | The one brand colour: intro and outro backgrounds, marker strokes, and the screens' backdrop. |
 | `brand.colors.stage` | Behind the window in screen scenes, if not the accent. Use `paper` when the app's own screens are mostly the accent colour, so the window stands out. |
 | `brand.shadow` | The window's shadow: `soft` (default) or `hard`, an offset in ink, for flat, bordered brands. |
-| `style` | The look, from `src/styles/` (default `clean`). [Extending the template](extending.md) shows how to add one. |
+| `style` | The look: `clean` (default), `rays`, `aura` or `drafting`, from `src/styles/`. Step 4 of `SKILL.md` describes each, and [extending the template](extending.md) shows how to add one. |
 | `chip` | The chapter chip over screens and stats (default `true`). |
 | `fps` | Default 30. Use 60 for social posts if render time allows. |
 | `music` | Optional, a file in `public/` (e.g. `music/score.wav`). It plays from 0:00 under the whole video, fading in over a second and out over the last two. See Music in `SKILL.md` for where to get it, where its drop should land and how loud it should be. |
@@ -59,11 +59,12 @@ In 16:9 a screen plays the whole take in a window. In 9:16 and 1:1 each take is 
 - Any scene can set `only`, the formats it plays in (default all). A hook that opens only the social cuts is `"only": ["9:16", "1:1"]`.
 - Any scene can set `kicker`, its chapter ("02 · Sources"). On a title it sits above the text. A chip at the top of the frame carries it through the screens and stats after it, until the next kicker.
 - Any scene can set `enter`, how it arrives over the last one:
-  - `slide`: up from the bottom, the default for screens;
+  - `slide`: up from the bottom, the default for screens (except in `aura`, where they fade);
   - `fade`: the default for the rest;
   - `iris`: opens from the centre in a circle;
   - `clock`: sweeps in like a clock hand;
-  - `push`: a push-cut with a flash.
+  - `push`: a push-cut with a flash;
+  - `blocks`: drops in as a row of blocks, left to right (the `drafting` style's default for titles, stats and the outro).
 
   Use two or three kinds in one video, and save the showy ones for chapter breaks.
 - Scenes overlap by 0.6 s, so every scene must be at least 1.2 s long.

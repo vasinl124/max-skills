@@ -2,7 +2,7 @@ import type { Take } from "./motion";
 
 export type { Take };
 export type Format = "16:9" | "9:16" | "1:1";
-export type Enter = "fade" | "slide" | "iris" | "clock" | "push";
+export type Enter = "fade" | "slide" | "iris" | "clock" | "push" | "blocks";
 
 export type Brand = {
   name: string;

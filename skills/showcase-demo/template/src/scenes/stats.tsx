@@ -1,7 +1,7 @@
 import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { serif } from "../fonts";
 import { clamp } from "../motion";
-import { useShowcase } from "../parts";
+import { useShowcase, useSurface } from "../parts";
 import type { Scene } from "../types";
 
 // The numbers' type size that fits: up to 230 px, shrinking with more or longer values. A number's cell is
@@ -42,16 +42,17 @@ function Stat({ value, label, size, labelSize, delay, last }: { value: string; l
   const frame = useCurrentFrame() - delay;
   const { fps } = useVideoConfig();
   const { brand } = useShowcase();
-  const { ink, accent, muted } = brand.colors;
+  const { ink, accent } = brand.colors;
+  const s = useSurface("paper");
   const CELL = Math.round(size * 1.09);
   const roll = spring({ frame, fps, config: { damping: 20, stiffness: 60 } });
   const settle = spring({ frame: frame - 0.25 * fps, fps, config: { damping: 200 } });
   const disc = spring({ frame: frame - 0.9 * fps, fps, config: { damping: 12, stiffness: 140 } });
-  const digitStyle = { lineHeight: `${CELL}px`, fontFamily: serif, fontStyle: "normal", fontSize: size, color: ink } as const;
+  const digitStyle = { lineHeight: `${CELL}px`, fontFamily: serif, fontStyle: "normal", fontSize: size, color: last ? `color-mix(in oklab, ${ink} ${Math.round(clamp(disc) * 100)}%, ${s.text})` : s.text } as const;
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 * (labelSize / 40), opacity: clamp(frame / 6) }}>
       <div style={{ position: "relative", minWidth: CELL, height: CELL, display: "flex", justifyContent: "center" }}>
-        {last && <div style={{ position: "absolute", left: "50%", top: 0, width: CELL, height: CELL, marginLeft: -CELL / 2, borderRadius: "50%", background: accent, transform: `scale(${disc})` }} />}
+        {last && <div style={{ position: "absolute", left: "50%", top: 0, width: CELL, height: CELL, marginLeft: -CELL / 2, borderRadius: "50%", background: accent, boxShadow: s.glow && `0 0 ${CELL / 3}px ${s.glow}`, transform: `scale(${disc})` }} />}
         {/* each digit is a strip of 0–9, twice over, rolling up to its value in the second run */}
         {[...value].map((ch, d) =>
           /[0-9]/.test(ch) ? (
@@ -71,7 +72,7 @@ function Stat({ value, label, size, labelSize, delay, last }: { value: string; l
           ),
         )}
       </div>
-      <div style={{ fontSize: labelSize, fontWeight: 600, letterSpacing: "-0.025em", color: muted, opacity: settle, transform: `translateY(${(1 - settle) * 16}px)` }}>{label}</div>
+      <div style={{ fontSize: labelSize, fontWeight: 600, letterSpacing: "-0.025em", color: s.muted, opacity: settle, transform: `translateY(${(1 - settle) * 16}px)` }}>{label}</div>
     </div>
   );
 }

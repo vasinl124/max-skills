@@ -55,7 +55,7 @@ Every field, the scene types, and the pacing and copy rules are in [the storyboa
 - **Narrate with captions**: a `t.say()` line for each beat of a take (step 3).
 - **Name the chapters**: a scene's `kicker` ("02 · Sources") rides on a chip through the screens after it.
 
-Show the user the storyboard as a short script: each scene in order with its words, what each take does, and the estimated length (30 to 60 seconds). Get their OK before recording: the words are theirs to sign off.
+Show the user the storyboard as a short script: each scene in order with its words, what each take does, the style you'd pick for the brand (step 4 lists them), and the estimated length (30 to 60 seconds). Get their OK before recording: the words are theirs to sign off.
 
 ## 2. Run the app
 
@@ -118,7 +118,18 @@ npx remotion still Showcase out/poster.png --frame=60
 ffmpeg -y -i out/showcase.mp4 -vf "fps=10,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=5" out/showcase.gif
 ```
 
-Edit `public/showcase.json` and render again to change the words or the order. `"style"` picks the look: `clean`, flat brand colours under a drifting light, is the default, and `npx remotion render Sampler out/sampler.mp4` plays every style side by side. For a bespoke touch, edit `src/` directly: `scenes/` draws each scene, `styles/` holds the looks, `frames.tsx` the window, `formats.ts` the sizes, `motion.ts` the camera and cursor, and `Showcase.tsx` the timeline and transitions. To add a style, a kind of scene, a frame or a format that works in every format, follow [extending the template](references/extending.md). Remotion animates only from `useCurrentFrame()`, never from CSS transitions; the `remotion-best-practices` skill, if installed, has the rest. The GIF is for a README, where a GIF plays inline: 40 seconds at 720 px and 10 fps comes to about 6 MB. Keep it under 10 MB.
+Edit `public/showcase.json` and render again to change the words or the order.
+
+`"style"` picks the look. Each one takes its colours from the brand:
+
+| Style | The look | Suits |
+|---|---|---|
+| `clean` (default) | Flat brand colours under a drifting light. | Anything; the safe choice. |
+| `rays` | Dark, lit from above by slow beams of the accent with the odd sparkle. Starred words glow, and so do windows. | Bold launches, developer tools, anything that looks good after dark. |
+| `aura` | Soft orbs of the accent and its neighbouring hues breathing over the ground. The chip and captions sit on frosted glass, and screens fade in. | Calm, consumer and wellness products. |
+| `drafting` | Grid paper with registration marks and a wandering crosshair (a blueprint on dark). Mono labels, leader-line callouts, and titles that drop in as blocks. | Engineering, data and productivity tools. |
+
+`npx remotion render Sampler out/sampler.mp4` plays every style side by side in the storyboard's brand, including a slice of a take, so the user can pick one. For a bespoke touch, edit `src/` directly: `scenes/` draws each scene, `styles/` holds the looks, `frames.tsx` the window, `formats.ts` the sizes, `motion.ts` the camera and cursor, and `Showcase.tsx` the timeline and transitions. To add a style, a kind of scene, a frame or a format that works in every format, follow [extending the template](references/extending.md). Remotion animates only from `useCurrentFrame()`, never from CSS transitions; the `remotion-best-practices` skill, if installed, has the rest. The GIF is for a README, where a GIF plays inline: 40 seconds at 720 px and 10 fps comes to about 6 MB. Keep it under 10 MB.
 
 ### Music
 

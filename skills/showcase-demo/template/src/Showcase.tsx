@@ -6,6 +6,7 @@ import { fade } from "@remotion/transitions/fade";
 import { iris } from "@remotion/transitions/iris";
 import { pushCut } from "@remotion/transitions/push-cut";
 import { slide } from "@remotion/transitions/slide";
+import { blocks } from "./blocks";
 import { sans } from "./fonts";
 import { FORMATS } from "./formats";
 import { clamp, type Take } from "./motion";
@@ -50,7 +51,8 @@ export const load: CalculateMetadataFunction<ShowcaseProps> = async ({ props }) 
   };
 };
 
-// How a scene arrives over the last one. The iris and the clock wipe open round; push is a push-cut.
+// How a scene arrives over the last one. The iris and the clock wipe open round; push is a push-cut; blocks
+// drop in one after another.
 const arrival = (enter: Enter, width: number, height: number): TransitionPresentation<any> => {
   switch (enter) {
     case "slide":
@@ -61,6 +63,8 @@ const arrival = (enter: Enter, width: number, height: number): TransitionPresent
       return clockWipe({ width, height });
     case "push":
       return pushCut();
+    case "blocks":
+      return blocks();
     default:
       return fade();
   }

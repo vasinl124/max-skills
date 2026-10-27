@@ -4,8 +4,9 @@ import { Video } from "@remotion/media";
 import type { FormatSpec } from "../formats";
 import { borderOf, FRAMES, shadowOf } from "../frames";
 import { camera, clamp, focusOf, pointer, project, viewOf, type Layout, type Pt, type Rect, type Take, type TakeEvent } from "../motion";
-import { Kicker, useShowcase, Words } from "../parts";
-import type { Brand, Scene } from "../types";
+import { useShowcase, useSurface, Words } from "../parts";
+import type { Surface } from "../styles";
+import type { Scene } from "../types";
 
 type Say = Extract<TakeEvent, { type: "say" }>;
 type Callout = Extract<TakeEvent, { type: "callout" }>;
@@ -46,7 +47,7 @@ export function Screen({ scene, take, chapter }: { scene: Extract<Scene, { type:
   const frame = useCurrentFrame();
   const { fps, width: W, height: H } = useVideoConfig();
   const { board, brand, style: S, spec } = useShowcase();
-  const { paper, ink, accent, muted, stage = accent } = brand.colors;
+  const s = useSurface("stage");
   const t = (scene.from ?? 0) + frame / fps; // the take's clock
   const says = take.events.filter((e) => e.type === "say") as Say[];
   const chip = board.chip !== false && !!chapter;
@@ -71,12 +72,11 @@ export function Screen({ scene, take, chapter }: { scene: Extract<Scene, { type:
   const video = (
     <Video src={staticFile(`takes/${scene.take}.mp4`)} trimBefore={Math.round((scene.from ?? 0) * fps)} muted style={{ display: "block", width: vw * L.k, height: vh * L.k }} />
   );
-  const overlays = <Overlays take={take} t={t} at={at} size={[v.w, v.h]} cursorSize={30 * L.k * cam.s} brand={brand} />;
+  const overlays = <Overlays take={take} t={t} at={at} size={[v.w, v.h]} cursorSize={30 * L.k * cam.s} />;
   let said = -1;
   says.forEach((e, i) => {
     if (e.t <= t) said = i;
   });
-  const fg = stage === ink ? paper : ink;
   // in 16:9 the window grows over the bands as the camera pushes in: the headline steps aside and the
   // captions take a backing
   const pushed = win ? interpolate(cam.s, [1, 1.1], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 0;
@@ -98,7 +98,7 @@ export function Screen({ scene, take, chapter }: { scene: Extract<Scene, { type:
         </>
       ) : (
         <div style={{ position: "absolute", left: v.x, top: v.y, width: v.w, height: v.h, transform: `translateY(${(1 - enter) * 80}px) scale(${0.96 + 0.04 * enter})`, opacity: clamp(enter * 1.6) }}>
-          <div style={{ position: "absolute", inset: 0, borderRadius: 28 * spec.type, overflow: "hidden", background: "#fff", border: borderOf(brand), boxShadow: shadowOf(brand) }}>
+          <div style={{ position: "absolute", inset: 0, borderRadius: 28 * spec.type, overflow: "hidden", background: "#fff", border: borderOf(brand, s), boxShadow: shadowOf(brand, s) }}>
             <div style={lens}>
               <div style={{ position: "absolute", left: L.ox, top: L.oy }}>{video}</div>
             </div>
@@ -107,7 +107,7 @@ export function Screen({ scene, take, chapter }: { scene: Extract<Scene, { type:
         </div>
       )}
       {/* a sped-up stretch: top right of the frame, or on a card's top edge, clear of the app's own corners */}
-      <SpeedBadge take={take} t={t} brand={brand} place={win ? { right: 56, top: 48 } : { left: v.x + v.w / 2, top: v.y, transform: "translate(-50%, -50%)" }} />
+      <SpeedBadge take={take} t={t} s={s} place={win ? { right: 56, top: 48 } : { left: v.x + v.w / 2, top: v.y, transform: "translate(-50%, -50%)" }} />
       {head && scene.title && (
         <div
           style={{
@@ -125,8 +125,8 @@ export function Screen({ scene, take, chapter }: { scene: Extract<Scene, { type:
             opacity: 1 - pushed,
           }}
         >
-          {scene.kicker && !chip && <Kicker text={scene.kicker} color={muted} delay={Math.round(0.35 * fps)} />}
-          <Words text={scene.title} size={(spec.reframe ? 84 : 62) * spec.type} delay={Math.round(0.45 * fps)} color={fg} mark={stage === accent ? paper : accent} style={{ fontWeight: 600 }} />
+          {scene.kicker && !chip && <S.Kicker text={scene.kicker} color={s.muted} delay={Math.round(0.35 * fps)} />}
+          <Words text={scene.title} size={(spec.reframe ? 84 : 62) * spec.type} delay={Math.round(0.45 * fps)} color={s.text} mark={s.mark} accentColor={s.em} glow={s.glow} style={{ fontWeight: 600 }} />
         </div>
       )}
       {cap && said >= 0 && (
@@ -150,22 +150,26 @@ const Band = ({ padX, children }: { padX: number; children: ReactNode }) => (
 );
 
 // The cursor and the callouts, over the take in the view's coordinates (size: the view's).
-function Overlays(props: { take: Take; t: number; at: (p: Pt) => Pt; size: [number, number]; cursorSize: number; brand: Brand }) {
-  const { take, t, at, size, cursorSize, brand } = props;
+function Overlays(props: { take: Take; t: number; at: (p: Pt) => Pt; size: [number, number]; cursorSize: number }) {
+  const { take, t, at, size, cursorSize } = props;
+  const { fps } = useVideoConfig();
+  const { brand, style: S } = useShowcase();
   const cursor = pointer(take.events, t);
   const callouts = take.events.filter((e) => e.type === "callout" && t >= e.t && t < e.until + 0.3) as Callout[];
   return (
     <AbsoluteFill>
-      {callouts.map((e) => (
-        <CalloutRing key={e.t} e={e} t={t} at={at} size={size} brand={brand} />
-      ))}
+      {callouts.map((e) => {
+        const [x0, y0] = at([e.box.x, e.box.y]);
+        const [x1, y1] = at([e.box.x + e.box.w, e.box.y + e.box.h]);
+        const pop = spring({ frame: Math.max(0, (t - e.t) * fps), fps, config: { damping: 16, stiffness: 170 } });
+        return <S.Callout key={e.t} text={e.text} box={{ x: x0, y: y0, w: x1 - x0, h: y1 - y0 }} view={{ w: size[0], h: size[1] }} pop={pop} out={clamp((t - e.until) / 0.3)} />;
+      })}
       {cursor && <Cursor cursor={cursor} at={at} size={cursorSize} ink={brand.colors.ink} />}
     </AbsoluteFill>
   );
 }
 
-function SpeedBadge({ take, t, brand, place }: { take: Take; t: number; brand: Brand; place: CSSProperties }) {
-  const { paper, ink } = brand.colors;
+function SpeedBadge({ take, t, s, place }: { take: Take; t: number; s: Surface; place: CSSProperties }) {
   const speed = take.events.find((e) => e.type === "speed" && t >= e.t && t < e.until) as Speed | undefined;
   if (!speed) return null;
   return (
@@ -178,15 +182,15 @@ function SpeedBadge({ take, t, brand, place }: { take: Take; t: number; brand: B
         gap: 10,
         padding: "10px 22px",
         borderRadius: 999,
-        background: ink,
-        color: paper,
+        background: s.text,
+        color: s.ground,
         fontSize: 26,
         fontWeight: 600,
         opacity: clamp((t - speed.t) / 0.25) * (1 - clamp((t - speed.until + 0.25) / 0.25)),
       }}
     >
       <svg width="26" height="16" viewBox="0 0 26 16">
-        <path d="M1 1l11 7-11 7zM13 1l11 7-11 7z" fill={paper} />
+        <path d="M1 1l11 7-11 7zM13 1l11 7-11 7z" fill={s.ground} />
       </svg>
       {speed.rate}×
     </div>
@@ -219,48 +223,6 @@ function Cursor({ cursor, at, size, ink }: { cursor: NonNullable<ReturnType<type
       >
         <path d="M3.8 1.9 L3.8 19.5 L8.4 15.2 L11.6 22.4 L14.6 21.1 L11.5 14 L17.9 14 Z" fill="#111" stroke="#fff" strokeWidth="1.5" strokeLinejoin="round" />
       </svg>
-    </>
-  );
-}
-
-function CalloutRing({ e, t, at, size: [cw, ch], brand }: { e: Callout; t: number; at: (p: Pt) => Pt; size: [number, number]; brand: Brand }) {
-  const { fps } = useVideoConfig();
-  const { paper, ink } = brand.colors;
-  const pop = spring({ frame: Math.max(0, (t - e.t) * fps), fps, config: { damping: 16, stiffness: 170 } });
-  const out = clamp((t - e.until) / 0.3);
-  const [x0, y0] = at([e.box.x, e.box.y]);
-  const [x1, y1] = at([e.box.x + e.box.w, e.box.y + e.box.h]);
-  const pad = 10;
-  const w = x1 - x0 + 2 * pad;
-  const h = y1 - y0 + 2 * pad;
-  // under the target when there's room: what sits above it (a question, a header) is usually its context
-  const above = y1 + pad + 100 > ch && y0 > 150;
-  const edge = Math.min(260, cw / 2);
-  return (
-    <>
-      <svg width={w} height={h} style={{ position: "absolute", left: x0 - pad, top: y0 - pad, overflow: "visible", opacity: 1 - out }}>
-        <rect width={w} height={h} rx={14} fill="none" stroke={ink} strokeWidth={4} strokeDasharray={2 * (w + h)} strokeDashoffset={2 * (w + h) * (1 - clamp(pop))} />
-      </svg>
-      <div
-        style={{
-          position: "absolute",
-          left: clamp((x0 + x1) / 2, edge, cw - edge),
-          top: above ? y0 - pad - 16 : y1 + pad + 16,
-          transform: `translate(-50%, ${above ? "-100%" : "0"}) scale(${0.85 + 0.15 * pop})`,
-          opacity: clamp(pop) * (1 - out),
-          padding: "14px 26px",
-          borderRadius: 999,
-          background: ink,
-          color: paper,
-          fontSize: 30,
-          fontWeight: 600,
-          letterSpacing: "-0.02em",
-          whiteSpace: "nowrap",
-          boxShadow: "0 14px 30px -12px rgba(0,0,0,0.45)",
-        }}
-      >
-        {e.text}
-      </div>
     </>
   );
 }

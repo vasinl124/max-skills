@@ -186,7 +186,8 @@ export function Caption({ text, age, leaving, plate, skin }: CaptionProps) {
 // lands. out: 0, rising to 1 as the callout leaves.
 export type CalloutProps = { text: string; box: { x: number; y: number; w: number; h: number }; view: { w: number; h: number }; pop: number; out: number };
 
-/** A callout: a ring drawn around its target, and a pill under it (over it when there's no room below). */
+/** A callout: a ring drawn around its target, and a pill under it (over it when there's no room below,
+ *  and over the box's lower edge when the box fills the view). */
 export function Callout({ text, box, view, pop, out }: CalloutProps) {
   const { brand } = useShowcase();
   const { paper, ink } = brand.colors;
@@ -195,7 +196,9 @@ export function Callout({ text, box, view, pop, out }: CalloutProps) {
   const w = box.w + 2 * pad;
   const h = box.h + 2 * pad;
   // under the target when there's room: what sits above it (a question, a header) is usually its context
+  const pill = 64; // its height
   const above = y1 + pad + 100 > view.h && y0 > 150;
+  const top = above ? y0 - pad - 16 - pill : Math.min(y1 + pad + 16, view.h - 16 - pill);
   const edge = Math.min(260, view.w / 2);
   return (
     <>
@@ -206,10 +209,13 @@ export function Callout({ text, box, view, pop, out }: CalloutProps) {
         style={{
           position: "absolute",
           left: clamp((x0 + x1) / 2, edge, view.w - edge),
-          top: above ? y0 - pad - 16 : y1 + pad + 16,
-          transform: `translate(-50%, ${above ? "-100%" : "0"}) scale(${0.85 + 0.15 * pop})`,
+          top,
+          height: pill,
+          display: "flex",
+          alignItems: "center",
+          transform: `translateX(-50%) scale(${0.85 + 0.15 * pop})`,
           opacity: clamp(pop) * (1 - out),
-          padding: "14px 26px",
+          padding: "0 26px",
           borderRadius: 999,
           background: ink,
           color: paper,

@@ -101,8 +101,11 @@ function Callout({ text, box, view, pop, out }: CalloutProps) {
     path = [[sx, sy], [sx + 36, sy + dy], [sx + 96, sy + dy]];
     lx = clamp(sx + 104, 12, view.w - lw - 12);
   }
-  const ly = path[2][1] - lh / 2;
-  const length = Math.hypot(36, 36) + 60;
+  // the label never leaves the view: when the box fills it, the label comes in over the box's edge
+  const ly = clamp(path[2][1] - lh / 2, 12, view.h - lh - 12);
+  path[1][1] += ly + lh / 2 - path[2][1];
+  path[2][1] = ly + lh / 2;
+  const length = Math.hypot(path[1][0] - path[0][0], path[1][1] - path[0][1]) + Math.abs(path[2][0] - path[1][0]);
   const lead = clamp((p - 0.35) / 0.4);
   const tick = (x: number, y: number, dx: number, dy: number) => `M${x + 14 * dx} ${y}H${x}V${y + 14 * dy}`;
   return (

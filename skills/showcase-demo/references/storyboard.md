@@ -108,7 +108,7 @@ Positions are CSS pixels in the recorded viewport, and times are seconds on the 
 - **The camera** pushes in to 1.4–1.8× on what is being acted on or read, and pulls back out to show where it sits. Each move takes 1 s, so leave about a second between zooms. Zoom into the payoff so its text can be read.
 - **Waits run under `t.fast()`**, at 3 to 6×, for model replies, loads and uploads. The badge says so.
 - **Callouts**: at most one per take, of 6 words or fewer, on the thing that makes the moment worth showing.
-- **A lift** is the strongest move: once a video, on its payoff, held about 3 s.
+- **A lift** is the strongest move: once a video, on its payoff, held about 3 s. Lift a whole element (a card, a reply, the full input with its button) so its edges come along.
 - **Captions**: a `t.say()` for each beat of a take, 9 words or fewer, saying what the moment means rather than what the cursor does ("He answers from the *Pali Canon.*", not "The reply appears"). Leave about 2 s for each line to be read. A caption needn't repeat its take's callout.
 - **Social cuts open on a hook**: a question the viewer has, or the payoff, in the first second. Never a logo: the brand comes at the end.
 - **A stats beat** before the outro can land the claim: three numbers, the last one the punchline ("0 made-up quotes").

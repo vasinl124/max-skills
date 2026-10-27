@@ -253,7 +253,8 @@ function LiftedCard(props: { e: Lift; raised: number; t: number; L: Layout; cam:
   const { width: W, height: H } = useVideoConfig();
   const { spec } = useShowcase();
   const s = useSurface("stage");
-  const { box } = e;
+  // 8 px of the page around the box, so the element's own border and rounded corners come along whole
+  const box = { x: e.box.x - 8, y: e.box.y - 8, w: e.box.w + 16, h: e.box.h + 16 };
   const text = e.text ? Math.round((spec.reframe ? 64 : 52) * spec.type) : 0; // the line's type size
   const [top, bottom] = [room[0] + 24, room[1] - 24 - (text ? 1.3 * text + 32 : 0)];
   // afloat: 62% of the frame across (86% in portrait), within the room, and at most 2.4 px per CSS px

@@ -111,6 +111,8 @@ const cursors = new WeakMap(); // each page's cursor position, carried from take
  *   t.zoom(locator, { scale })   push the camera in on it (by default it fills up to 70% of the frame)
  *   t.zoomOut()                  pull the camera back to the whole window
  *   t.callout(locator, text)     ring it with a label for `hold` seconds (default 2.5)
+ *   t.lift(locator, text)        lift it out of the page into a floating card, with the rest dimmed
+ *                                behind it and an optional line under it, for `hold` seconds (default 3)
  *   t.fast(async () => …, rate)  play this span `rate`× faster (default 4): waiting for a reply, a load
  *   t.scroll({ distance, direction, point })   a gradual, visible scroll
  *   t.say(text)                  a caption under the take from now until the next one: what this beat
@@ -176,6 +178,10 @@ async function take(name, page, steps) {
     },
     async callout(target, text, { hold = 2.5 } = {}) {
       log({ type: "callout", box: await box(target), text, until: now() + hold });
+      await page.waitForTimeout(hold * 1000);
+    },
+    async lift(target, text, { hold = 3 } = {}) {
+      log({ type: "lift", box: await box(target), ...(text && { text }), until: now() + hold });
       await page.waitForTimeout(hold * 1000);
     },
     async fast(fn, rate = 4) {

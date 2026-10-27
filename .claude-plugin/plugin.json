@@ -1,6 +1,6 @@
 {
   "name": "max-skills",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "displayName": "Max's skills",
   "description": "Screenshot, record and summarize pull requests straight into the PR description, make launch-style showcase videos with motion graphics, and take a new product from idea to researched PRD and scaffolded monorepo: pr-screenshots, pr-video, showcase-demo, pr-summary and new-project.",
   "author": { "name": "Max Vasin Limsukhawat", "url": "https://github.com/vasinl124" },

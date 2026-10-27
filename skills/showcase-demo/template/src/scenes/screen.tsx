@@ -1,9 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
-import { AbsoluteFill, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { Video } from "@remotion/media";
 import type { FormatSpec } from "../formats";
 import { borderOf, FRAMES, shadowOf } from "../frames";
-import { camera, clamp, focusOf, pointer, project, viewOf, type Layout, type Pt, type Rect, type Take, type TakeEvent } from "../motion";
+import { camera, clamp, easeInOut, focusOf, pointer, project, viewOf, type Camera, type Layout, type Pt, type Rect, type Take, type TakeEvent } from "../motion";
 import { useShowcase, useSurface, Words } from "../parts";
 import type { Surface } from "../styles";
 import type { Scene } from "../types";
@@ -11,8 +11,10 @@ import type { Scene } from "../types";
 type Say = Extract<TakeEvent, { type: "say" }>;
 type Callout = Extract<TakeEvent, { type: "callout" }>;
 type Speed = Extract<TakeEvent, { type: "speed" }>;
+type Lift = Extract<TakeEvent, { type: "lift" }>;
 
 const HANDOFF = 0.2; // seconds a caption takes to leave before the next one comes in
+const SETTLE = 0.5; // seconds a lifted card takes to sink back into the page
 
 // Where a screen's parts go. In 16:9 the whole take plays in a window between the headline band and the
 // caption band. In reframed formats a card fills the space between them, cut to the take's action
@@ -42,7 +44,8 @@ function arrange(spec: FormatSpec, W: number, H: number, take: Take, o: { title:
 }
 
 /** A take on the brand's stage. The camera pushes in on each zoom, a drawn cursor travels and clicks,
- *  callouts ring what matters, captions narrate under it, and a badge owns up to every sped-up stretch. */
+ *  callouts ring what matters, lifts float a piece of the page out over the rest, captions narrate under
+ *  it, and a badge owns up to every sped-up stretch. */
 export function Screen({ scene, take, chapter }: { scene: Extract<Scene, { type: "screen" }>; take: Take; chapter?: string }) {
   const frame = useCurrentFrame();
   const { fps, width: W, height: H } = useVideoConfig();
@@ -80,6 +83,11 @@ export function Screen({ scene, take, chapter }: { scene: Extract<Scene, { type:
   // in 16:9 the window grows over the bands as the camera pushes in: the headline steps aside and the
   // captions take a backing
   const pushed = win ? interpolate(cam.s, [1, 1.1], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 0;
+  // a lift: how far its card has risen out of the page, 0 to 1; the page dims and blurs behind it
+  const lifts = take.events.filter((e) => e.type === "lift" && e.t >= (scene.from ?? 0)) as Lift[];
+  const lift = lifts.find((e) => t >= e.t && t < e.until + SETTLE);
+  const raised = lift ? spring({ frame: (t - lift.t) * fps, fps, config: { damping: 200 }, durationInFrames: 24 }) * (1 - easeInOut(clamp((t - lift.until) / SETTLE))) : 0;
+  const dim = raised > 0 && <AbsoluteFill style={{ background: `color-mix(in oklab, ${s.ground} ${Math.round(65 * raised)}%, transparent)`, backdropFilter: `blur(${(8 * raised).toFixed(2)}px)` }} />;
   return (
     <AbsoluteFill>
       <S.Backdrop tone="stage" />
@@ -94,7 +102,8 @@ export function Screen({ scene, take, chapter }: { scene: Extract<Scene, { type:
               </div>
             </div>
           </AbsoluteFill>
-          {overlays}
+          {dim}
+          <AbsoluteFill style={{ opacity: 1 - raised }}>{overlays}</AbsoluteFill>
         </>
       ) : (
         <div style={{ position: "absolute", left: v.x, top: v.y, width: v.w, height: v.h, transform: `translateY(${(1 - enter) * 80}px) scale(${0.96 + 0.04 * enter})`, opacity: clamp(enter * 1.6) }}>
@@ -102,10 +111,19 @@ export function Screen({ scene, take, chapter }: { scene: Extract<Scene, { type:
             <div style={lens}>
               <div style={{ position: "absolute", left: L.ox, top: L.oy }}>{video}</div>
             </div>
-            {overlays}
+            {dim}
+            <AbsoluteFill style={{ opacity: 1 - raised }}>{overlays}</AbsoluteFill>
           </div>
         </div>
       )}
+      {lifts.map((e) => {
+        const from = Math.round((e.t - (scene.from ?? 0)) * fps);
+        return (
+          <Sequence key={e.t} from={from} durationInFrames={Math.round((e.until + SETTLE - e.t) * fps)} premountFor={fps}>
+            <LiftedCard e={e} raised={e === lift ? raised : 0} t={t} L={L} cam={cam} src={`takes/${scene.take}.mp4`} trimBefore={Math.round((scene.from ?? 0) * fps) + from} viewport={take.viewport} room={[spec.top, cap ? cap.y : H - spec.bottom]} />
+          </Sequence>
+        );
+      })}
       {/* a sped-up stretch: top right of the frame, or on a card's top edge, clear of the app's own corners */}
       <SpeedBadge take={take} t={t} s={s} place={win ? { right: 56, top: 48 } : { left: v.x + v.w / 2, top: v.y, transform: "translate(-50%, -50%)" }} />
       {head && scene.title && (
@@ -223,6 +241,53 @@ function Cursor({ cursor, at, size, ink }: { cursor: NonNullable<ReturnType<type
       >
         <path d="M3.8 1.9 L3.8 19.5 L8.4 15.2 L11.6 22.4 L14.6 21.1 L11.5 14 L17.9 14 Z" fill="#111" stroke="#fff" strokeWidth="1.5" strokeLinejoin="round" />
       </svg>
+    </>
+  );
+}
+
+/** A lifted piece of the page: a second copy of the take, cut to the lift's box, rises from where the box
+ *  sits to float in the middle of `room` (the space between the safe area and the captions), tilted, as
+ *  large as fits and still sharp, with the lift's line under it. raised: 0 (in the page) to 1 (afloat). */
+function LiftedCard(props: { e: Lift; raised: number; t: number; L: Layout; cam: Camera; src: string; trimBefore: number; viewport: Take["viewport"]; room: [number, number] }) {
+  const { e, raised, t, L, cam, src, trimBefore, viewport, room } = props;
+  const { width: W, height: H } = useVideoConfig();
+  const { spec } = useShowcase();
+  const s = useSurface("stage");
+  const { box } = e;
+  const text = e.text ? Math.round((spec.reframe ? 64 : 52) * spec.type) : 0; // the line's type size
+  const [top, bottom] = [room[0] + 24, room[1] - 24 - (text ? 1.3 * text + 32 : 0)];
+  // afloat: 62% of the frame across (86% in portrait), within the room, and at most 2.4 px per CSS px
+  const k1 = Math.min(((H > W ? 0.86 : 0.62) * W) / box.w, (bottom - top) / box.h, 2.4);
+  const [x0, y0] = project([box.x, box.y], L, cam);
+  const k0 = L.k * cam.s;
+  const k = k0 + (k1 - k0) * raised;
+  const cx = x0 + (box.w * k0) / 2 + (W / 2 - x0 - (box.w * k0) / 2) * raised;
+  const cy = y0 + (box.h * k0) / 2 + ((top + bottom) / 2 - y0 - (box.h * k0) / 2) * raised;
+  const sway = Math.sin(t * 1.1) * raised;
+  return (
+    <>
+      <div
+        style={{
+          position: "absolute",
+          left: cx - (box.w * k) / 2,
+          top: cy - (box.h * k) / 2,
+          width: box.w * k,
+          height: box.h * k,
+          overflow: "hidden",
+          borderRadius: 16 * raised,
+          background: "#fff",
+          boxShadow: `0 ${40 * raised}px ${90 * raised}px -30px rgba(0,0,0,${(0.5 * raised).toFixed(3)})${s.glow ? `, 0 0 ${80 * raised}px ${s.glow}` : ""}`,
+          transform: `perspective(1600px) rotateX(${4 * raised}deg) rotateY(${-6 * raised + 2 * sway}deg) translateY(${-8 * sway}px)`,
+          visibility: raised > 0 ? "visible" : "hidden",
+        }}
+      >
+        <Video src={staticFile(src)} trimBefore={trimBefore} muted style={{ position: "absolute", left: -box.x * k, top: -box.y * k, width: viewport.width * k, height: viewport.height * k, maxWidth: "none" }} />
+      </div>
+      {e.text && (
+        <div style={{ position: "absolute", left: 0, width: W, top: cy + (box.h * k1) / 2 + 32, display: "flex", justifyContent: "center", padding: `0 ${spec.padX}px`, opacity: raised }}>
+          <Words text={e.text} size={text} delay={8} color={s.text} mark={s.mark} accentColor={s.em} glow={s.glow} style={{ fontWeight: 600 }} />
+        </div>
+      )}
     </>
   );
 }

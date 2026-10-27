@@ -23,6 +23,8 @@ export type Scene = Common &
     | { type: "title"; text: string; theme?: "light" | "dark" | "accent"; seconds?: number }
     | { type: "screen"; take: string; title?: string; frame?: string; from?: number; to?: number }
     | { type: "stats"; items: { value: string; label: string }[]; seconds?: number }
+    | { type: "quote"; text: string; by?: string; theme?: "light" | "dark" | "accent"; seconds?: number }
+    | { type: "compare"; before: string; after: string; labels?: [string, string]; title?: string; seconds?: number }
     | { type: "outro"; text?: string; cta?: string; seconds?: number }
   );
 
@@ -34,4 +36,6 @@ export type Board = {
   music?: string; // a file in public/
   fps?: number;
   chip?: boolean; // the chapter chip on screens and stats (default true)
+  sfx?: boolean; // a click on each click, a pop on each callout and lift, a whoosh into each scene (public/sfx/)
+  beat?: { bpm: number; offset?: number }; // the music's tempo, and its first beat in seconds: cuts land on beats
 };

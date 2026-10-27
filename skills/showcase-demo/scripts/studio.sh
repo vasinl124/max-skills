@@ -23,4 +23,6 @@ if [ ! -d "$dir/src" ]; then
   cp "$skill/template/package.json" "$skill/template/remotion.config.ts" "$skill/template/tsconfig.json" "$dir/"
 fi
 ln -sfn "$cache/node_modules" "$dir/node_modules"
+# the sound effects "sfx": true plays, synthesized once; your own files of the same names are kept
+[ -f "$dir/public/sfx/click.wav" ] || bash "$skill/scripts/sfx.sh" "$dir/public/sfx"
 echo "$dir"

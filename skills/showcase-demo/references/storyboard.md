@@ -31,6 +31,8 @@
 | `style` | The look: `clean` (default), `beams`, `aura` or `drafting`, from `src/styles/`. Step 4 of `SKILL.md` describes each, and [extending the template](extending.md) shows how to add one. |
 | `chip` | The chapter chip over screens and stats (default `true`). |
 | `fps` | Default 30. Use 60 for social posts if render time allows. |
+| `sfx` | `true` plays a click on each click, a pop as each callout or lift lands, and a whoosh into each scene, from `public/sfx/`. |
+| `beat` | `{ "bpm": 124, "offset": 0.337 }`, the music's tempo and its first beat in seconds, from `scripts/beats.mjs`: each cut after a title, stats or a quote moves by up to half a beat to land on one. |
 | `music` | Optional, a file in `public/` (e.g. `music/score.wav`). It plays from 0:00 under the whole video, fading in over a second and out over the last two. See Music in `SKILL.md` for where to get it, where its drop should land and how loud it should be. |
 
 Typefaces are code, not JSON: set them in `src/fonts.ts`. Any Google Font is one import line. For font files, use `@remotion/fonts`.
@@ -51,8 +53,10 @@ In 16:9 a screen plays the whole take in a window. In 9:16 and 1:1 each take is 
 |---|---|---|
 | `intro` | `seconds` | 3 s |
 | `title` | `text`, `kicker`, `theme`: `light` (paper), `dark` (ink) or `accent`; `seconds` | 2 s |
-| `screen` | `take`, plus optional `title` (a headline above the window, which in 16:9 fades while the camera is pushed in), `frame` (`browser`, the default, or `card`: what the take sits in, in 16:9), `from`, `to` (seconds, to use part of a take) | the take's length |
+| `screen` | `take`, plus optional `title` (a headline above the window, which in 16:9 fades while the camera is pushed in), `frame` (what the take sits in, in 16:9: `browser`, the default; `card`; `phone`, for a take recorded at a phone's size; or `terminal`, for a command line in the browser), `from`, `to` (seconds, to use part of a take) | the take's length |
 | `stats` | `items`: two to four `{ "value": "3", "label": "languages" }`. Values roll in digit by digit, and the last lands on an accent disc. | 3.2 s |
+| `quote` | `text`, `by` (who said it), `theme` as for titles, `seconds`. A pull quote under a large quote mark: a customer, a review, or the claim the product answers. | 4 s |
+| `compare` | `before` and `after`: two pictures of the same size in `public/`, such as screenshots or frames pulled from takes (`ffmpeg -ss <s> -i public/takes/<take>.mp4 -frames:v 1 public/after.png`); `labels` (default `["Before", "After"]`), `title`, `seconds`. The after wipes across the before, pausing halfway. | 4.5 s |
 | `outro` | `text`, `cta` (defaults to `brand.url`), `seconds` | 4 s |
 
 - In `text` and `title`, `*starred*` words are the accent: the serif's italic, over a marker stroke.
@@ -91,7 +95,7 @@ In 16:9 a screen plays the whole take in a window. In 9:16 and 1:1 each take is 
 }
 ```
 
-A `say` is a caption, from `t.say()`: it shows under the take from its time until the next one.
+A `say` is a caption, from `t.say()`: it shows under the take from its time until the next one. A `lift`, from `t.lift()`, is `{ "t", "type": "lift", "box", "text", "until" }`: from `t` to `until`, the box rises out of the page into a floating card, with the rest dimmed behind it and `text` under it. A callout can be turned into a lift by editing its `type`.
 
 In `record.mjs`, `t.top(locator, height)` turns a tall element (a long card, a whole reply) into a box for its top part. Zoom on that box and call it out, so the ring doesn't run off the frame.
 
@@ -104,6 +108,7 @@ Positions are CSS pixels in the recorded viewport, and times are seconds on the 
 - **The camera** pushes in to 1.4–1.8× on what is being acted on or read, and pulls back out to show where it sits. Each move takes 1 s, so leave about a second between zooms. Zoom into the payoff so its text can be read.
 - **Waits run under `t.fast()`**, at 3 to 6×, for model replies, loads and uploads. The badge says so.
 - **Callouts**: at most one per take, of 6 words or fewer, on the thing that makes the moment worth showing.
+- **A lift** is the strongest move: once a video, on its payoff, held about 3 s.
 - **Captions**: a `t.say()` for each beat of a take, 9 words or fewer, saying what the moment means rather than what the cursor does ("He answers from the *Pali Canon.*", not "The reply appears"). Leave about 2 s for each line to be read. A caption needn't repeat its take's callout.
 - **Social cuts open on a hook**: a question the viewer has, or the payoff, in the first second. Never a logo: the brand comes at the end.
 - **A stats beat** before the outro can land the claim: three numbers, the last one the punchline ("0 made-up quotes").

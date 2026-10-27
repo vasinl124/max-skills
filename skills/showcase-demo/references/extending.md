@@ -41,7 +41,7 @@ A style can redraw any kind of scene through its own `scenes`.
 
 ## Frames (`src/frames.tsx`)
 
-A frame is how a 16:9 screen presents its take: `browser` (the default, with traffic lights and the address bar) or `card` (a plain rounded card). A scene picks one with `"frame"`. To add one, write its `Chrome` (`{ width, children }`) and list it in `FRAMES`, with `bar` set to the height of its chrome above the take. Reframed formats always show a card.
+A frame is how a 16:9 screen presents its take: `browser` (the default, with traffic lights and the address bar), `card` (a plain rounded card), `phone` (a bezel, rounded screen corners and the camera's pill, for a phone-size take) or `terminal` (a dark title bar with the shell's name). A scene picks one with `"frame"`. To add one, write its `Chrome` (`{ width, children }`) and list it in `FRAMES`, with `bar` set to the height of its chrome above the take. Reframed formats always show a card.
 
 ## Formats (`src/formats.ts`)
 

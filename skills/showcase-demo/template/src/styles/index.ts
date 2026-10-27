@@ -3,9 +3,9 @@ import { Callout, Caption, Chip, Kicker, type CalloutProps, type CaptionProps, t
 import { SCENES, type SceneComponent } from "../scenes";
 import type { Brand, Enter, Scene } from "../types";
 import { aura } from "./aura";
+import { beams } from "./beams";
 import { clean, surface as cleanSurface } from "./clean";
 import { drafting } from "./drafting";
-import { rays } from "./rays";
 
 // The background tones a scene asks its style for. stage is the brand's stage colour (default: accent).
 export type Tone = "paper" | "ink" | "accent" | "stage";
@@ -30,7 +30,7 @@ export type Style = {
   Callout?: FC<CalloutProps>;
 };
 
-export const STYLES: Record<string, Style> = { clean, rays, aura, drafting };
+export const STYLES: Record<string, Style> = { clean, beams, aura, drafting };
 
 export type ResolvedStyle = Required<Omit<Style, "scenes">> & { scenes: Record<Scene["type"], SceneComponent> };
 

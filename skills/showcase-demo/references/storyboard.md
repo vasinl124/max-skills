@@ -28,7 +28,7 @@
 | `brand.colors.accent` | The one brand colour: intro and outro backgrounds, marker strokes, and the screens' backdrop. |
 | `brand.colors.stage` | Behind the window in screen scenes, if not the accent. Use `paper` when the app's own screens are mostly the accent colour, so the window stands out. |
 | `brand.shadow` | The window's shadow: `soft` (default) or `hard`, an offset in ink, for flat, bordered brands. |
-| `style` | The look: `clean` (default), `rays`, `aura` or `drafting`, from `src/styles/`. Step 4 of `SKILL.md` describes each, and [extending the template](extending.md) shows how to add one. |
+| `style` | The look: `clean` (default), `beams`, `aura` or `drafting`, from `src/styles/`. Step 4 of `SKILL.md` describes each, and [extending the template](extending.md) shows how to add one. |
 | `chip` | The chapter chip over screens and stats (default `true`). |
 | `fps` | Default 30. Use 60 for social posts if render time allows. |
 | `music` | Optional, a file in `public/` (e.g. `music/score.wav`). It plays from 0:00 under the whole video, fading in over a second and out over the last two. See Music in `SKILL.md` for where to get it, where its drop should land and how loud it should be. |

@@ -3,7 +3,7 @@ import { useShowcase } from "../parts";
 import type { Brand } from "../types";
 import type { Style, Surface, Tone } from ".";
 
-// rays: the brand after dark. Every scene sits on a deep version of its ink, lit from just above the frame
+// beams: the brand after dark. Every scene sits on a deep version of its ink, lit from just above the frame
 // by slow, swaying beams of its accent, with the odd sparkle drifting in the light. Text is paper, starred
 // words glow in the accent, and windows glow instead of casting a shadow.
 
@@ -22,11 +22,11 @@ const LIGHT: Record<Tone, number> = { accent: 1, ink: 0.8, paper: 0.65, stage: 0
 // nine beams fanned across the frame from a source above its centre, each breathing at its own pace (angles
 // in degrees clockwise from straight up, so 180 points straight down)
 const BEAMS = Array.from({ length: 9 }, (_, i) => ({
-  at: 148 + i * 8 + (random(`ray-at-${i}`) - 0.5) * 2,
-  width: 1.2 + random(`ray-width-${i}`) * 1.8,
-  speed: 0.3 + random(`ray-speed-${i}`) * 0.5,
-  phase: random(`ray-phase-${i}`) * 2 * Math.PI,
-  power: 0.35 + random(`ray-power-${i}`) * 0.65,
+  at: 148 + i * 8 + (random(`beam-at-${i}`) - 0.5) * 2,
+  width: 1.2 + random(`beam-width-${i}`) * 1.8,
+  speed: 0.3 + random(`beam-speed-${i}`) * 0.5,
+  phase: random(`beam-phase-${i}`) * 2 * Math.PI,
+  power: 0.35 + random(`beam-power-${i}`) * 0.65,
 }));
 
 const SPARKS = Array.from({ length: 7 }, (_, i) => ({
@@ -87,4 +87,4 @@ function Backdrop({ tone, quiet }: { tone: Tone; quiet?: boolean }) {
   );
 }
 
-export const rays: Style = { Backdrop, surface, enter: { screen: "slide" } };
+export const beams: Style = { Backdrop, surface, enter: { screen: "slide" } };

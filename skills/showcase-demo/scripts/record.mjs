@@ -113,6 +113,8 @@ const cursors = new WeakMap(); // each page's cursor position, carried from take
  *   t.callout(locator, text)     ring it with a label for `hold` seconds (default 2.5)
  *   t.fast(async () => …, rate)  play this span `rate`× faster (default 4): waiting for a reply, a load
  *   t.scroll({ distance, direction, point })   a gradual, visible scroll
+ *   t.say(text)                  a caption under the take from now until the next one: what this beat
+ *                                means, in 9 words or fewer; *starred* words take the accent
  *   t.hold(ms)                   give the viewer time to read (default 1500)
  *   t.top(locator, height)       a box for just the top of a tall element (default 380 px), to zoom
  *                                on or call out where it starts instead of ringing it off the frame
@@ -181,6 +183,9 @@ async function take(name, page, steps) {
       const result = await fn();
       fast.push({ from, to: now(), rate });
       return result;
+    },
+    async say(text) {
+      log({ type: "say", text });
     },
     scroll: (options) => gradualScroll(page, options),
     hold: (ms = 1500) => page.waitForTimeout(ms),

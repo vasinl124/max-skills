@@ -75,7 +75,7 @@ if echo src/A.tsx | node "$cov" --scenes "$t/unboxed.json" >/dev/null 2>&1; then
 #    cursor gets out of the way while typing and when idle. Node runs the TypeScript itself from 22.18 (type stripping).
 if node -e 'process.exit(process.features.typescript ? 0 : 1)'; then
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --input-type=module -e '
-    import { aim, camera, pointer, IDLE } from "./skills/showcase-demo/template/src/motion.ts";
+    import { aim, camera, focusOf, pointer, project, IDLE } from "./skills/showcase-demo/template/src/motion.ts";
     const ok = (cond, what) => { if (!cond) throw new Error(what); };
     const L = { W: 1920, H: 1080, ox: 240, oy: 114, k: 1 };
     const corner = { x: 1340, y: 840, w: 100, h: 40 }; // a button in the bottom-right corner
@@ -88,6 +88,27 @@ if node -e 'process.exit(process.features.typescript ? 0 : 1)'; then
     ok(pointer(acts, 1).opacity === 1 && pointer(acts, 1.6).opacity === 0, "cursor stays while typing");
     const still = acts.slice(0, 2);
     ok(pointer(still, 1 + IDLE - 0.1).opacity === 1 && pointer(still, 1 + IDLE + 0.4).opacity === 0, "cursor stays when idle");
+    // a reframed 9:16 card onto a 1440-wide take: it rests on the action, a move out of sight pans just far enough
+    // without leaving the take, a move in sight leaves the camera be, a zoom never spills its box out of the card nor
+    // strays from rest further than it must, and a push-in eases back out on its click
+    const V = { W: 1080, H: 1920, k: 1.2, ox: -324, oy: 400, view: { x: 60, y: 400, w: 960, h: 1080 }, bounds: { x: -324, y: 400, w: 1728, h: 1080 }, follow: true, rest: [840, 450] };
+    ok(Math.abs(project([840, 450], V, camera([], 0, V))[0] - 540) < 1e-6, "the card does not rest on the action");
+    const far = camera([{ t: 1, type: "move", from: [840, 450], to: [100, 450], dur: 0.5 }], 3, V);
+    const [fx] = project([100, 450], V, far);
+    ok(fx >= 60 && fx <= 1020 && far.x - 960 / (2 * far.s) >= -324 - 1e-6, `follow lost the target or left the take: ${fx}, ${far.x}`);
+    ok(Math.abs(camera([{ t: 1, type: "move", from: [840, 450], to: [1100, 470], dur: 0.5 }], 3, V).x - camera([], 3, V).x) < 1e-6, "follow chased a target already in sight");
+    const reply = { x: 500, y: 150, w: 640, h: 380 };
+    const z = aim({ box: reply, scale: 1.45 }, V);
+    const [[zx0], [zx1]] = [project([reply.x, reply.y], V, z), project([reply.x + reply.w, reply.y], V, z)];
+    ok(z.s > 1 && zx0 >= 60 && zx1 <= 1020, `zoom spilled the box out of the card: ${zx0}..${zx1} at ${z.s}`);
+    const button = { x: 520, y: 400, w: 100, h: 32 }; // left of the action: the zoom keeps the rest of it in sight
+    const zb = aim({ box: button, scale: 1.5 }, V);
+    const [bx] = project([button.x, button.y], V, zb);
+    ok(zb.s < 1.5 && Math.abs(bx - 108) < 1e-6, `a reframed zoom went closer or further from rest than it needed: ${bx} at ${zb.s}`);
+    const clicked = camera([{ t: 1, type: "zoom", box: button, scale: 1.5 }, { t: 2, type: "click", at: [570, 416] }], 3.5, V);
+    ok(clicked.s === 1 && clicked.x === camera([], 0, V).x, "a reframed push-in did not ease back out on its click");
+    const f = focusOf({ viewport: { width: 1440, height: 900 }, duration: 1, events: [{ t: 0, type: "zoom", box: { x: 1300, y: 10, w: 100, h: 20 } }] });
+    ok(f.w === 600 && f.x + f.w <= 1440 && f.y === 0, `the focus left the viewport: ${JSON.stringify(f)}`);
   ' || fail "showcase-demo template/src/motion.ts"
 else
   echo "skipped: showcase-demo's motion check needs Node 22.18+"

@@ -1,12 +1,12 @@
 ---
 name: showcase-demo
-description: Make a polished, launch-style showcase video of a product, with motion graphics, from the running app. Real recordings of its best flows are staged in a browser window on the brand's colours, with kinetic titles, a camera that pushes in on each action, a drawn cursor, callouts, transitions, an intro and a call-to-action outro, and an optional score, rendered with Remotion. Use when the user asks for a showcase, demo, launch, promo or teaser video of their app or a feature, a product video "with motion graphics", a Screen Studio-style demo, or a hero video for a README, landing page, portfolio or social post. Records with Playwright (2× pixels plus a log of its clicks, typing and zooms), composes from a storyboard JSON, and delivers an MP4 and a GIF, optionally attached to a PR. For a reviewer's captioned walkthrough with before/after stills, use pr-video instead.
+description: Make a polished, launch-style showcase video of a product, with motion graphics, from the running app. Real recordings of its best flows are staged in a browser window on the brand's colours, with kinetic titles, a camera that pushes in on each action, a drawn cursor, callouts, captions, transitions, an intro and a call-to-action outro, and an optional score, rendered with Remotion in 16:9, vertical 9:16 and square 1:1. Use when the user asks for a showcase, demo, launch, promo or teaser video of their app or a feature, a product video "with motion graphics", a Screen Studio-style demo, a hero video for a README, landing page or portfolio, or a vertical or square cut for Reels, TikTok, Shorts or a feed. Records with Playwright (2× pixels plus a log of its clicks, typing and zooms), composes from a storyboard JSON, and delivers an MP4 and a GIF, optionally attached to a PR. For a reviewer's captioned walkthrough with before/after stills, use pr-video instead.
 license: MIT
 ---
 
 # Showcase Demo
 
-Make the video you'd put on a landing page, at the top of a README or in a launch post: the product's best moments, recorded for real, staged with motion graphics in its own brand. `pr-video` records a PR so a reviewer can see it work; this one is made to show the product off.
+Make the video you'd put on a landing page, at the top of a README or in a launch post: the product's best moments, recorded for real, staged with motion graphics in its own brand. One storyboard renders the 16:9 hero and the vertical and square cuts for social feeds. `pr-video` records a PR so a reviewer can see it work; this one is made to show the product off.
 
 The pipeline: **storyboard** (the copy and the scenes, in `showcase.json`) → **record** each flow as a take (`record.mjs`: 2× video plus an event log) → **compose** in Remotion (the bundled template turns each log into camera moves, a cursor and callouts) → **render** → **check** → **deliver**.
 
@@ -50,6 +50,11 @@ Write `$SHOW/public/showcase.json`, put the logo in `$SHOW/public/`, and set the
 
 Every field, the scene types, and the pacing and copy rules are in [the storyboard reference](references/storyboard.md). Read it before writing the storyboard.
 
+**Cuts for social feeds** (9:16 for Reels, TikTok and Shorts, 1:1 for feeds) come from the same storyboard. They play muted, in a feed the viewer is scrolling past, so:
+- **Hook first.** Open on a title that asks the viewer's question or promises the payoff ("What would you ask *the Buddha?*"), and keep the logo for the end. A scene's `only` keeps it to some formats: give the intro `"only": ["16:9"]` and the hook `"only": ["9:16", "1:1"]`.
+- **Narrate with captions**: a `t.say()` line for each beat of a take (step 3).
+- **Name the chapters**: a scene's `kicker` ("02 · Sources") rides on a chip through the screens after it.
+
 Show the user the storyboard as a short script: each scene in order with its words, what each take does, and the estimated length (30 to 60 seconds). Get their OK before recording: the words are theirs to sign off.
 
 ## 2. Run the app
@@ -66,11 +71,13 @@ One take per `screen` scene, named as its `take`. Copy the recorder next to the 
 
 ```js
 await take("send", page, async (t) => {
+  await t.say("Bill a client in *one click.*");                       // a caption, until the next one
   await t.hold(1000);                                                 // the starting state, to read
   await t.click(page.getByRole("button", { name: "New invoice" }), { zoom: true });
   await t.type("Northwind Traders");
   await t.fast(() => page.getByText("Sent").waitFor(), 4);            // a wait, played at 4× under a badge
   await t.zoomOut();
+  await t.say("Then it *chases the payment.*");
   await t.callout(page.getByRole("row").first(), "Sent and tracked");
   await t.hold(2500);                                                 // the payoff, held
 });
@@ -86,6 +93,8 @@ node "$SHOW/record.mjs" --app-dir "<dir with playwright>" --url http://127.0.0.1
 
 Each take becomes `public/takes/<name>.mp4` (2880×1800 for the default 1440×900 window, so the camera can push in without blur) and `<name>.json` (its events). `--only` re-records just the takes named. If a take builds on the state an earlier one leaves behind (a sent message, an open panel), re-record them together.
 
+A vertical or square cut reuses these takes, cut to a card around their action. When the text in a take must be read on a phone, record it again at a phone's size (`--size 430x932 --scale 3`) under its own name, and give it a screen scene with `"only": ["9:16"]`.
+
 Look at every take before composing: pull a frame from its payoff (`ffmpeg -ss <s> -i take.mp4 -frames:v 1 x.png`). The payoff must be on screen, with no error toast and no spinner. Read any generated text in it: model output glitches, so retake a garbled reply rather than ship it.
 
 ## 4. Compose and render
@@ -93,7 +102,7 @@ Look at every take before composing: pull a frame from its payoff (`ffmpeg -ss <
 The template builds the video from the storyboard and the takes:
 - **Intro**: the logo and name arrive, then the tagline.
 - **Title** scenes: kinetic type, with a marker stroke under the *starred* words.
-- **Screen** scenes: the take in a browser window. The camera glides to each zoom, a drawn cursor travels, presses and hides while typing, callouts ring their target, and a badge owns up to each sped-up stretch.
+- **Screen** scenes: the take in a browser window, or in 9:16 and 1:1 a card cut to its action. The camera glides to each zoom, a drawn cursor travels, presses and hides while typing, callouts ring their target, captions narrate underneath, and a badge owns up to each sped-up stretch. A chip at the top names the chapter.
 - **Stats** scenes: two to four numbers that roll in like a counter, the last landing on an accent disc.
 - **Outro**: the line and the call to action.
 
@@ -102,12 +111,14 @@ Screens slide up into place, and other scenes fade in. A scene's `enter` can ins
 ```bash
 cd "$SHOW"
 npx remotion studio                                  # optional: scrub it in the browser (localhost:3000)
-npx remotion render Showcase out/showcase.mp4        # about 1–3 minutes for 40 seconds
+npx remotion render Showcase out/showcase.mp4        # 16:9, about 1–3 minutes for 40 seconds
+npx remotion render Showcase-9x16 out/vertical.mp4   # 1080×1920, for Reels, TikTok and Shorts
+npx remotion render Showcase-1x1 out/square.mp4      # 1080×1080, for feeds
 npx remotion still Showcase out/poster.png --frame=60
 ffmpeg -y -i out/showcase.mp4 -vf "fps=10,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=5" out/showcase.gif
 ```
 
-Edit `public/showcase.json` and render again to change the words or the order. For a bespoke touch, edit `src/` directly: `scenes.tsx` has the look of each scene, `motion.ts` the camera and cursor, `Showcase.tsx` the timeline and transitions. Remotion animates only from `useCurrentFrame()`, never from CSS transitions; the `remotion-best-practices` skill, if installed, has the rest. The GIF is for a README, where a GIF plays inline: 40 seconds at 720 px and 10 fps comes to about 6 MB. Keep it under 10 MB.
+Edit `public/showcase.json` and render again to change the words or the order. `"style"` picks the look: `clean`, flat brand colours under a drifting light, is the default, and `npx remotion render Sampler out/sampler.mp4` plays every style side by side. For a bespoke touch, edit `src/` directly: `scenes/` draws each scene, `styles/` holds the looks, `frames.tsx` the window, `formats.ts` the sizes, `motion.ts` the camera and cursor, and `Showcase.tsx` the timeline and transitions. To add a style, a kind of scene, a frame or a format that works in every format, follow [extending the template](references/extending.md). Remotion animates only from `useCurrentFrame()`, never from CSS transitions; the `remotion-best-practices` skill, if installed, has the rest. The GIF is for a README, where a GIF plays inline: 40 seconds at 720 px and 10 fps comes to about 6 MB. Keep it under 10 MB.
 
 ### Music
 
@@ -123,9 +134,9 @@ Put the file in `public/music/` and set `"music": "music/<file>"` in `showcase.j
 
 ## 5. Check before sharing
 
-- `ffprobe out/showcase.mp4`: 1920×1080, H.264, the expected length. A minute should be well under 50 MB.
+- `ffprobe` each file: 1920×1080 (1080×1920 vertical, 1080×1080 square), H.264, the expected length. A minute should be well under 50 MB.
 - Pull frames at each scene's middle, each transition, each callout and the last second, and look at them:
-  - text is crisp and nothing is cut off;
+  - text is crisp and nothing is cut off, including at the edges of a vertical or square cut's card;
   - each callout's label sits clear of its target;
   - the cursor is on the thing being clicked;
   - there are no blank frames and no stray dev overlays.
@@ -134,7 +145,7 @@ Put the file in `public/music/` and set `"music": "music/<file>"` in `showcase.j
 
 ## 6. Deliver
 
-Send the user the MP4, the GIF and the poster (their paths, or as files if your agent can send them), and say what each take shows and which were retaken. Then offer:
+Send the user the MP4s, the GIF and the poster (their paths, or as files if your agent can send them), and say what each take shows and which were retaken. Then offer:
 
 - **The README or the site**: copy the files into the repo's media folder (e.g. `docs/media/`) and embed the GIF linked to the MP4. On a site, use a `<video controls playsInline preload="none" poster>` with the MP4 and the poster, and play it in the deployment preview before merging. Either way that changes the repo, so ask first.
 - **A PR**: as in `pr-video`, publish to a media branch, then splice a section into the PR body that embeds the GIF linked to the MP4 (`[![Showcase](GIF_URL)](MP4_URL)`, with the URLs it prints). Show the user the result before `--write`:
